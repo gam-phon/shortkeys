@@ -1,0 +1,11 @@
+.build/
+build/
+dist/
+.DS_Store
+*.p12
+
+# Claude Code's local scratch folder (project notes are in CLAUDE.md).
+.claude/
+
+# A global `*.sw*` rule (for Vim swap files) would otherwise hide Swift sources.
+!*.swift

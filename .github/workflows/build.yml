@@ -1,0 +1,83 @@
+name: Build
+
+# Every push and pull request: build, test and upload the installer as an artifact.
+# Pushing a tag like v1.2.0: also publish a GitHub Release with the .pkg and .zip.
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write # create releases
+
+jobs:
+  build:
+    runs-on: macos-latest
+    env:
+      # Optional: the "Shortkeys Dev" certificate, so CI builds have the same
+      # signature as local builds and the Accessibility permission survives
+      # updates. See the README ("Signing CI builds"). Without it, builds are
+      # signed ad-hoc.
+      SIGNING_CERT_P12: ${{ secrets.SIGNING_CERT_P12 }}
+      SIGNING_CERT_PASSWORD: ${{ secrets.SIGNING_CERT_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+          echo "macOS SDK $(xcrun --sdk macosx --show-sdk-version)"
+
+      - name: Version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Resources/Info.plist)"
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "BUILD_NUMBER=$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
+          echo "Building $VERSION ($GITHUB_RUN_NUMBER)"
+
+      - name: Import signing certificate
+        if: env.SIGNING_CERT_P12 != ''
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          security create-keychain -p "" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "" "$KEYCHAIN"
+          echo "$SIGNING_CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" -P "$SIGNING_CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" "$KEYCHAIN" > /dev/null
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          rm "$RUNNER_TEMP/cert.p12"
+
+      - name: Test window geometry
+        run: scripts/test-geometry.sh
+
+      - name: Build
+        run: SDKROOT="$(xcrun --sdk macosx --show-sdk-path)" ./build.sh
+
+      - name: Package
+        run: scripts/package.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Shortkeys-${{ env.VERSION }}-${{ env.BUILD_NUMBER }}
+          path: dist/*
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --title "Shortkeys $VERSION" \
+            --notes "Install with \`Shortkeys-$VERSION.pkg\`, or unzip \`Shortkeys-$VERSION.zip\` into /Applications. See the README for first-launch steps."

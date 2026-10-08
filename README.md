@@ -60,10 +60,17 @@ sudo installer -pkg /tmp/Shortkeys-*.pkg -target /
 open /Applications/Shortkeys.app
 ```
 
-A downloaded installer isn't notarized by Apple, so if you open it from Finder,
-macOS will block it the first time. In that case, go to System Settings →
-Privacy & Security and click **Open Anyway**. Installing with `gh` and
-`installer` as shown above avoids that step.
+The installer isn't notarized by Apple (that needs a paid developer account).
+So if you download it in a browser and open it, macOS says *"Apple could not
+verify…"*. Click **Done**, then go to System Settings → Privacy & Security and
+click **Open Anyway**. Alternatively, remove the download mark in Terminal
+first:
+
+```sh
+xattr -d com.apple.quarantine ~/Downloads/Shortkeys-*.pkg
+```
+
+Files downloaded with `gh`, as shown above, don't get that mark.
 
 On first launch:
 

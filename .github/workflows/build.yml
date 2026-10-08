@@ -94,6 +94,23 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" dist/* \
-            --title "Shortkeys $VERSION" \
-            --notes "Install with \`Shortkeys-$VERSION.pkg\`, or unzip \`Shortkeys-$VERSION.zip\` into /Applications. See the README for first-launch steps."
+          cat > "$RUNNER_TEMP/notes.md" <<NOTES
+          ## Install
+
+          Download \`Shortkeys-$VERSION.pkg\` and open it. Requires macOS 27.
+
+          **"Apple could not verify…"**: the installer isn't notarized by Apple, so macOS blocks the first open. Click **Done**, then go to System Settings → Privacy & Security, click **Open Anyway** next to Shortkeys, and enter your password. Or install from Terminal:
+
+          \`\`\`sh
+          xattr -d com.apple.quarantine ~/Downloads/Shortkeys-$VERSION.pkg
+          sudo installer -pkg ~/Downloads/Shortkeys-$VERSION.pkg -target /
+          open /Applications/Shortkeys.app
+          \`\`\`
+
+          ## First launch
+
+          1. Allow **Accessibility** access when asked. It's needed to detect hotkeys and to move windows.
+          2. In Settings → General, turn on **Launch at Login**.
+          NOTES
+          sed -i '' 's/^          //' "$RUNNER_TEMP/notes.md"
+          gh release create "$GITHUB_REF_NAME" dist/* --title "Shortkeys $VERSION" --notes-file "$RUNNER_TEMP/notes.md"

@@ -34,6 +34,96 @@ final class Updater {
 
     private(set) var state = State.idle
     private(set) var lastChecked: Date?
+    /// Set on the first launch after an update: the version it updated from.
+    private(set) var updatedFrom: String?
+
+    /// Snapshot test only: shows the "updated from" note without a real update.
+    func simulateUpdate(from version: String) {
+        updatedFrom = version
+    }
+
+    @ObservationIgnored private var scheduler: NSBackgroundActivityScheduler?
+    @ObservationIgnored private var waitingForIdle = false
+
+    /// How long the Mac must be untouched before an automatic update restarts Shortkeys.
+    /// (`SHORTKEYS_IDLE_BEFORE_INSTALL` overrides it for tests.)
+    nonisolated static var idleBeforeInstall: TimeInterval {
+        ProcessInfo.processInfo.environment["SHORTKEYS_IDLE_BEFORE_INSTALL"].flatMap(TimeInterval.init) ?? 5 * 60
+    }
+
+    static var checksAutomatically: Bool {
+        UserDefaults.standard.object(forKey: SettingsKey.checkForUpdates) as? Bool ?? true
+    }
+
+    static var installsAutomatically: Bool {
+        UserDefaults.standard.object(forKey: SettingsKey.installUpdatesAutomatically) as? Bool ?? true
+    }
+
+    // MARK: - Automatic updates
+
+    /// Called at launch: notes a just-finished update, checks now, and lets the
+    /// system run a check about once a day (scheduled by macOS, not a timer).
+    func start() {
+        let defaults = UserDefaults.standard
+        if let last = defaults.string(forKey: SettingsKey.lastRunVersion), last != currentVersion {
+            updatedFrom = last
+        }
+        defaults.set(currentVersion, forKey: SettingsKey.lastRunVersion)
+
+        let scheduler = NSBackgroundActivityScheduler(identifier: "com.yaser.shortkeys.update-check")
+        scheduler.repeats = true
+        scheduler.interval = 24 * 60 * 60
+        scheduler.tolerance = 60 * 60
+        scheduler.qualityOfService = .utility
+        scheduler.schedule { completion in
+            Task { @MainActor in
+                await Updater.shared.automaticCheck(atLaunch: false)
+                completion(.finished)
+            }
+        }
+        self.scheduler = scheduler
+
+        Task { await automaticCheck(atLaunch: true) }
+    }
+
+    /// Checks (if enabled) and installs a found update (if enabled): right away
+    /// at launch, otherwise once the Mac has been idle for a while.
+    func automaticCheck(atLaunch: Bool) async {
+        guard Self.checksAutomatically else { return }
+        await check()
+        guard Self.installsAutomatically, let release = availableRelease, Self.canReplaceWithoutPassword else { return }
+        if atLaunch {
+            await install(release)
+        } else {
+            await installWhenIdle(release)
+        }
+    }
+
+    /// Waits until nobody has used the keyboard or mouse for `idleBeforeInstall`,
+    /// so the restart never interrupts a hotkey. Only runs while an update waits.
+    private func installWhenIdle(_ release: Release) async {
+        guard !waitingForIdle else { return }
+        waitingForIdle = true
+        defer { waitingForIdle = false }
+        while Self.idleSeconds < Self.idleBeforeInstall {
+            try? await Task.sleep(for: .seconds(60))
+            guard Self.installsAutomatically, availableRelease == release else { return }
+        }
+        await install(release)
+    }
+
+    /// Seconds since the last keyboard or mouse input.
+    nonisolated static var idleSeconds: TimeInterval {
+        CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: CGEventType(rawValue: ~0)!)
+    }
+
+    /// An automatic update never asks for a password: a copy installed as root
+    /// (by an older .pkg) is updated only when the user clicks Update.
+    static var canReplaceWithoutPassword: Bool {
+        let path = plainPath(Bundle.main.bundleURL)
+        let owner = try? FileManager.default.attributesOfItem(atPath: path)[.ownerAccountID] as? NSNumber
+        return owner?.uint32Value == getuid()
+    }
 
     var currentVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
@@ -227,18 +317,28 @@ final class Updater {
                 throw UpdateError("The update was cancelled.")
             }
         }
+        // The previous version goes to the Trash (as "Shortkeys <version>.app"),
+        // so an update can be undone by putting it back.
         let script = """
-            pid="$1"; target="${2%/}"; new="${3%/}"
+            pid="$1"; target="${2%/}"; new="${3%/}"; trashed="$4"
             while kill -0 "$pid" 2>/dev/null; do sleep 0.2; done
             if /usr/bin/ditto "$new" "$target.updating"; then
                 if mv "$target" "$target.old"; then
-                    mv "$target.updating" "$target" || mv "$target.old" "$target"
+                    if mv "$target.updating" "$target"; then
+                        mkdir -p "$(dirname "$trashed")"
+                        mv "$target.old" "$trashed" || rm -rf "$target.old"
+                    else
+                        mv "$target.old" "$target"
+                    fi
                 fi
-                rm -rf "$target.old" "$target.updating"
+                rm -rf "$target.updating"
             fi
             /usr/bin/open "$target"
             rm -rf "$(dirname "$new")"
             """
+        let stamp = Date.now.formatted(.iso8601.year().month().day().time(includingFractionalSeconds: false))
+            .replacingOccurrences(of: ":", with: ".")
+        let trashed = URL.homeDirectory.appending(path: ".Trash/Shortkeys \(Updater.shared.currentVersion) (\(stamp)).app")
         let helper = Process()
         helper.executableURL = URL(filePath: "/bin/sh")
         helper.arguments = [
@@ -246,6 +346,7 @@ final class Updater {
             String(ProcessInfo.processInfo.processIdentifier),
             target,
             plainPath(newApp),
+            plainPath(trashed),
         ]
         try helper.run()
     }

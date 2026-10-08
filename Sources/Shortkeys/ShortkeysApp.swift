@@ -59,6 +59,10 @@ private struct MenuContent: View {
     private var updater = Updater.shared
 
     var body: some View {
+        if let from = updater.updatedFrom {
+            Text("✓ Updated from \(from) to \(updater.currentVersion)")
+            Divider()
+        }
         if let release = updater.availableRelease {
             Button("Update to Shortkeys \(release.version)…") {
                 SettingsModel.shared.page = .general
@@ -106,6 +110,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if Snapshot.isRequested {
             // Self-tests run unattended (also in CI, without Accessibility access).
             Snapshot.runIfRequested()
+        } else if ProcessInfo.processInfo.arguments.contains("--auto-update-test") {
+            // Developer test: the scheduled path (check, wait for idle, install) right now.
+            Task { await Updater.shared.automaticCheck(atLaunch: false) }
         } else if ProcessInfo.processInfo.arguments.contains("--update-test") {
             // Developer test: install the latest release even if it isn't newer.
             Task {
@@ -129,11 +136,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             SettingsModel.shared.page = .general
             SettingsWindow.show()
             Permissions.shared.requestAccess()
+            Updater.shared.start()
         } else {
             Permissions.shared.promptIfNeeded()
-            if UserDefaults.standard.object(forKey: SettingsKey.checkForUpdates) as? Bool ?? true {
-                Task { await Updater.shared.checkIfDue() }
-            }
+            Updater.shared.start()
         }
     }
 

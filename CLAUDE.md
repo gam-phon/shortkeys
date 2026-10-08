@@ -106,6 +106,13 @@ open build/Shortkeys.app --args --e2e-test /tmp/sk-e2e     # real clicks/keys: r
   which is stored in repo secrets. The same identity is in the owner's login
   keychain. Its leaf hash is b5641894…; changing it breaks updates and the
   Accessibility grants.
+- **Automatic updates.** These run at launch plus an `NSBackgroundActivityScheduler`
+  about once a day. Installs happen at launch or after 5 minutes idle
+  (`SHORTKEYS_IDLE_BEFORE_INSTALL` overrides that), and never with a password
+  prompt. The old version goes to the Trash. `lastRunVersion` drives the
+  "Updated from" note. To test: `--auto-update-test`, or start a 1.0.0-stamped
+  copy normally. Quit the installed Shortkeys first: test copies have the same
+  certificate and would also act on hotkeys.
 - **The updater** (`Updater.swift`) checks GitHub's latest release, verifies
   its SHA-256 and that the update satisfies the running app's designated
   requirement, then swaps the app via a helper script and relaunches.

@@ -4,6 +4,7 @@ struct GeneralPage: View {
     @Bindable private var launchAtLogin = LaunchAtLogin.shared
     @AppStorage(SettingsKey.showMenuBarIcon) private var showMenuBarIcon = true
     @AppStorage(SettingsKey.checkForUpdates) private var checkForUpdates = true
+    @AppStorage(SettingsKey.installUpdatesAutomatically) private var installUpdatesAutomatically = true
     private var permissions = Permissions.shared
     private var updater = Updater.shared
 
@@ -27,8 +28,16 @@ struct GeneralPage: View {
                         updateControl
                     }
                     Divider()
-                    SettingRow("Check automatically", detail: "Look for a new version when Shortkeys starts and when you open Settings.") {
-                        Toggle("Check automatically", isOn: $checkForUpdates)
+                    SettingRow("Check for updates automatically", detail: "When Shortkeys starts, about once a day, and when you open Settings.") {
+                        Toggle("Check for updates automatically", isOn: $checkForUpdates)
+                    }
+                    Divider()
+                    SettingRow(
+                        "Install updates automatically",
+                        detail: "Installs when the Mac hasn't been used for 5 minutes, or when Shortkeys starts. The previous version goes to the Trash."
+                    ) {
+                        Toggle("Install updates automatically", isOn: $installUpdatesAutomatically)
+                            .disabled(!checkForUpdates)
                     }
                 }
 
@@ -75,9 +84,16 @@ struct GeneralPage: View {
 
     private var updateStatus: String {
         switch updater.state {
-        case .idle: "Check GitHub for a newer version."
-        case .checking: "Checking for updates…"
-        case .upToDate: "You're using the latest version."
+        case .idle, .upToDate, .checking:
+            if let from = updater.updatedFrom {
+                "Updated from \(from). The previous version is in the Trash, if you need it back."
+            } else if updater.state == .checking {
+                "Checking for updates…"
+            } else if updater.state == .upToDate {
+                "You're using the latest version."
+            } else {
+                "Check GitHub for a newer version."
+            }
         case .available(let release): "Version \(release.version) is available. It installs and restarts Shortkeys; your hotkeys and settings are kept."
         case .downloading: "Downloading and verifying the update…"
         case .installing: "Installing… Shortkeys will restart."

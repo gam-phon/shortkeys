@@ -49,4 +49,8 @@ enum SettingsKey {
     static let showMenuBarIcon = "showMenuBarIcon"
     /// Whether to look for a newer release at launch and when Settings opens.
     static let checkForUpdates = "checkForUpdates"
+    /// Whether found updates are installed without asking (when the Mac is idle).
+    static let installUpdatesAutomatically = "installUpdatesAutomatically"
+    /// The version that ran last, to notice that an update just happened.
+    static let lastRunVersion = "lastRunVersion"
 }

@@ -79,21 +79,28 @@ On first launch:
 
 ## Updates
 
-Settings → General → **Updates** checks GitHub for a newer release. With "Check
-automatically" on, it checks when Shortkeys starts and when you open Settings.
-When an update is found, the menu bar menu also shows it.
+Shortkeys updates itself. Both settings are in Settings → General → Updates,
+and both are on by default:
 
-**Update to …** does four things:
+- **Check for updates automatically.** It checks when Shortkeys starts, about
+  once a day (scheduled by macOS), and when you open Settings. A found update
+  also shows in the menu bar menu.
+- **Install updates automatically.** It installs once the Mac hasn't been
+  used for 5 minutes, or when Shortkeys starts. That way the second-long
+  restart never interrupts a hotkey. Turn this off to install with the
+  **Update** button instead.
 
-1. It downloads the release.
-2. It verifies the release's SHA-256 checksum and that it's signed by the same
-   certificate as the installed app. A download that fails either check is
-   never installed.
-3. It replaces the app in place.
-4. It restarts Shortkeys.
+Every update goes through the same steps:
 
-Hotkeys, settings, Launch at Login and the Accessibility permission all carry
-over.
+1. It's downloaded, and its SHA-256 checksum is verified.
+2. Its signature is checked against the installed app's certificate.
+3. It replaces the app, and Shortkeys restarts.
+
+Hotkeys, settings, Launch at Login and Accessibility all carry over. The
+previous version goes to the Trash as "Shortkeys <version>.app", so you can put
+it back if an update misbehaves. Automatic installs never ask for a password.
+A copy that an older installer put there as administrator is updated only when
+you click **Update**.
 
 ## Uninstall
 

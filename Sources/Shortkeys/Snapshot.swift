@@ -42,6 +42,9 @@ enum Snapshot {
         let settings = SettingsModel.shared
         let catalog = AppCatalog.shared
         settings.page = .general
+        if let from = ProcessInfo.processInfo.environment["SHORTKEYS_SIMULATE_UPDATED_FROM"] {
+            Updater.shared.simulateUpdate(from: from)
+        }
         SettingsWindow.show()
         try? await Task.sleep(for: .seconds(1))
         save("0-general", to: folder)
@@ -146,6 +149,9 @@ enum Snapshot {
             Updater.plainPath(URL(filePath: "/Applications/Shortkeys.app/", directoryHint: .isDirectory)) == "/Applications/Shortkeys.app"
         )
         check("admin commands quote paths safely", AdminPrompt.quoted("/a b/it's") == "'/a b/it'\\''s'")
+        check("automatic update checks are on by default", UserDefaults.standard.object(forKey: SettingsKey.checkForUpdates) == nil ? Updater.checksAutomatically : true)
+        check("automatic installs are on by default", UserDefaults.standard.object(forKey: SettingsKey.installUpdatesAutomatically) == nil ? Updater.installsAutomatically : true)
+        check("idle time can be read (\(Int(Updater.idleSeconds))s)", Updater.idleSeconds >= 0)
         let latest = try? await Updater.fetchLatestRelease()
         check("latest release on GitHub has an app download and checksums (\(latest?.version ?? "none"))", latest != nil)
         // The recorder's strings ("Record Hotkey") must load from the app itself,

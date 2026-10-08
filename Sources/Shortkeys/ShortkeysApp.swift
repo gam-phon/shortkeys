@@ -1,5 +1,4 @@
 import KeyboardShortcuts
-import ServiceManagement
 import SwiftUI
 
 @main
@@ -86,7 +85,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         if ProcessInfo.processInfo.arguments.contains("--uninstall") {
-            uninstall()
+            Uninstaller.uninstall()
             return
         }
         if Snapshot.isRequested {
@@ -95,18 +94,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             Permissions.shared.promptIfNeeded()
         }
-    }
-
-    /// `Shortkeys --uninstall`: removes the login item and all settings, then
-    /// quits. Deleting the app and its Accessibility entry is left to the user
-    /// (see the README).
-    private func uninstall() {
-        try? SMAppService.mainApp.unregister()
-        if let domain = Bundle.main.bundleIdentifier {
-            UserDefaults.standard.removePersistentDomain(forName: domain)
-        }
-        print("Shortkeys: removed the login item and settings.")
-        NSApp.terminate(nil)
     }
 
     /// A menu bar app keeps running with no windows. SwiftUI doesn't set this

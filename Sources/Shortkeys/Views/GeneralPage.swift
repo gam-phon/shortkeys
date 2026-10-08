@@ -42,6 +42,15 @@ struct GeneralPage: View {
                         }
                     }
                 }
+
+                SettingsGroup(title: "Uninstall") {
+                    SettingRow(
+                        "Uninstall Shortkeys",
+                        detail: "Removes the login item, your hotkeys and settings, and the Accessibility entry, and moves the app to the Trash."
+                    ) {
+                        Button("Uninstall…", role: .destructive) { Uninstaller.confirmAndUninstall() }
+                    }
+                }
             }
             .padding(20)
         }

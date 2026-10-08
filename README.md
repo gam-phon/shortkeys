@@ -81,10 +81,12 @@ On first launch:
 
 ## Uninstall
 
+Go to Settings → General → **Uninstall…**. This removes the login item, your
+hotkeys and settings, and the Accessibility entry, and moves the app to the
+Trash. From Terminal, the same:
+
 ```sh
-/Applications/Shortkeys.app/Contents/MacOS/Shortkeys --uninstall   # removes the login item and settings
-tccutil reset Accessibility com.yaser.shortkeys                     # removes the Accessibility entry
-mv /Applications/Shortkeys.app ~/.Trash/
+/Applications/Shortkeys.app/Contents/MacOS/Shortkeys --uninstall
 ```
 
 ## Build from source

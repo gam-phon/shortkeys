@@ -141,6 +141,10 @@ enum Snapshot {
         check("Carbon backend is disabled", !KeyboardShortcuts.isEnabled)
         check("version 1.10.0 is newer than 1.9.2", Updater.isVersion("1.10.0", newerThan: "1.9.2"))
         check("version 1.1 is not newer than 1.1.0", !Updater.isVersion("1.1", newerThan: "1.1.0"))
+        check(
+            "update paths have no trailing slash",
+            Updater.plainPath(URL(filePath: "/Applications/Shortkeys.app/", directoryHint: .isDirectory)) == "/Applications/Shortkeys.app"
+        )
         let latest = try? await Updater.fetchLatestRelease()
         check("latest release on GitHub has an app download and checksums (\(latest?.version ?? "none"))", latest != nil)
         // The recorder's strings ("Record Hotkey") must load from the app itself,

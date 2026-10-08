@@ -206,28 +206,45 @@ final class Updater {
         return identifierOnly
     }
 
-    /// Starts a helper that waits for Shortkeys to quit, swaps in the new app
-    /// (copy first, then replace, so a failure never leaves no app), and reopens it.
+    /// Starts a helper that waits for Shortkeys to quit, swaps in the new app and
+    /// reopens it. The old app is only removed once the new one is in place; if
+    /// the swap fails, the old app is put back. Either way Shortkeys reopens.
     static func replaceRunningApp(with newApp: URL) throws {
-        let target = Bundle.main.bundleURL
-        let parent = target.deletingLastPathComponent().path(percentEncoded: false)
+        let target = plainPath(Bundle.main.bundleURL)
+        let parent = (target as NSString).deletingLastPathComponent
         guard FileManager.default.isWritableFile(atPath: parent) else {
             throw UpdateError("Shortkeys can't write to \(parent). Install the update from the release page instead.")
         }
         let script = """
-            while kill -0 "$1" 2>/dev/null; do sleep 0.2; done
-            /usr/bin/ditto "$3" "$2.updating" && rm -rf "$2" && mv "$2.updating" "$2" && /usr/bin/open "$2"
-            rm -rf "$(dirname "$3")"
+            pid="$1"; target="${2%/}"; new="${3%/}"
+            while kill -0 "$pid" 2>/dev/null; do sleep 0.2; done
+            if /usr/bin/ditto "$new" "$target.updating"; then
+                if mv "$target" "$target.old"; then
+                    mv "$target.updating" "$target" || mv "$target.old" "$target"
+                fi
+                rm -rf "$target.old" "$target.updating"
+            fi
+            /usr/bin/open "$target"
+            rm -rf "$(dirname "$new")"
             """
         let helper = Process()
         helper.executableURL = URL(filePath: "/bin/sh")
         helper.arguments = [
             "-c", script, "shortkeys-update",
             String(ProcessInfo.processInfo.processIdentifier),
-            target.path(percentEncoded: false),
-            newApp.path(percentEncoded: false),
+            target,
+            plainPath(newApp),
         ]
         try helper.run()
+    }
+
+    /// A file URL's path without a trailing slash. A bundle URL is a directory
+    /// URL ("…/Shortkeys.app/"); with the slash, "$target.updating" would point
+    /// inside the app, and replacing it would delete the update too.
+    nonisolated static func plainPath(_ url: URL) -> String {
+        var path = url.standardizedFileURL.path(percentEncoded: false)
+        while path.count > 1, path.hasSuffix("/") { path.removeLast() }
+        return path
     }
 }
 

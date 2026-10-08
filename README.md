@@ -89,8 +89,18 @@ every time you rebuild.
 
 ## Releases (CI)
 
-GitHub Actions (`.github/workflows/build.yml`) builds every push and pull
-request. It runs the tests and uploads the installer as a build artifact.
+GitHub Actions (`.github/workflows/build.yml`) handles every push and pull
+request:
+
+1. It runs the window-layout tests.
+2. It builds the app and runs its self-test (hotkey wiring checks, plus a
+   screenshot of every Settings page).
+3. It packages the `.pkg` and `.zip`, and uploads them and the screenshots as
+   build artifacts.
+
+If any test fails, nothing is packaged. The end-to-end test isn't run in CI,
+because it needs Accessibility access to post real clicks and key presses. Run
+it locally.
 
 To publish a release, push a version tag:
 
@@ -139,8 +149,9 @@ open build/Shortkeys.app --args --snapshot /tmp/sk-snaps   # page screenshots + 
 open build/Shortkeys.app --args --e2e-test /tmp/sk-e2e     # clicks a recorder and presses ⌥N, then restores
 ```
 
-Quit the running copy before running the last two. The end-to-end test briefly
-takes over the mouse and keyboard, for about 10 seconds.
+Quit the running copy before running the last two. Both quit when they finish.
+The end-to-end test briefly takes over the mouse and keyboard, for about 10
+seconds.
 
 ## How it's built
 

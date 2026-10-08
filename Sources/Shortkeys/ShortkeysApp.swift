@@ -84,8 +84,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 WindowManager.shared.perform(command)
             }
         }
-        Permissions.shared.promptIfNeeded()
-        Snapshot.runIfRequested()
+        if Snapshot.isRequested {
+            // Self-tests run unattended (also in CI, without Accessibility access).
+            Snapshot.runIfRequested()
+        } else {
+            Permissions.shared.promptIfNeeded()
+        }
     }
 
     /// A menu bar app keeps running with no windows. SwiftUI doesn't set this

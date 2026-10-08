@@ -12,6 +12,12 @@ import KeyboardShortcuts
 ///   the shortcuts it touched.
 @MainActor
 enum Snapshot {
+    /// Whether the app was launched to run a self-test (it quits when done).
+    static var isRequested: Bool {
+        let arguments = ProcessInfo.processInfo.arguments
+        return arguments.contains("--snapshot") || arguments.contains("--e2e-test")
+    }
+
     static func runIfRequested() {
         let arguments = ProcessInfo.processInfo.arguments
         let tests: [(String, @MainActor (URL) async -> Void)] = [
@@ -23,8 +29,9 @@ enum Snapshot {
             let folder = URL(filePath: arguments[index + 1])
             try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             Task { @MainActor in
-                try? await Task.sleep(for: .seconds(1)) // let the menu bar label capture `openWindow`
+                try? await Task.sleep(for: .seconds(1)) // let the app finish launching
                 await run(folder)
+                NSApp.terminate(nil)
             }
         }
     }

@@ -1,6 +1,7 @@
 name: Build
 
-# Every push and pull request: build, test and upload the installer as an artifact.
+# Every push and pull request: test, build, self-test, and upload the installer
+# and screenshots of every Settings page as artifacts.
 # Pushing a tag like v1.2.0: also publish a GitHub Release with the .pkg and .zip.
 on:
   push:
@@ -64,6 +65,21 @@ jobs:
 
       - name: Build
         run: SDKROOT="$(xcrun --sdk macosx --show-sdk-path)" ./build.sh
+
+      - name: Self-test (hotkey wiring + screenshots of every Settings page)
+        run: |
+          SNAPS="$RUNNER_TEMP/snapshots"
+          build/Shortkeys.app/Contents/MacOS/Shortkeys --snapshot "$SNAPS" &
+          for i in $(seq 1 120); do [ -f "$SNAPS/selftest.txt" ] && break; sleep 1; done
+          cat "$SNAPS/selftest.txt"
+          ! grep -q FAIL "$SNAPS/selftest.txt"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Screenshots-${{ env.VERSION }}-${{ env.BUILD_NUMBER }}
+          path: ${{ runner.temp }}/snapshots/*.png
+          if-no-files-found: ignore
 
       - name: Package
         run: scripts/package.sh

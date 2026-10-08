@@ -71,6 +71,11 @@ final class Updater {
     nonisolated static func fetchLatestRelease() async throws -> Release {
         var request = URLRequest(url: URL(string: "https://api.github.com/repos/\(repository)/releases/latest")!)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        // CI runners share IP addresses and hit GitHub's anonymous rate limit;
+        // they provide a token. Normal installs don't need one.
+        if let token = ProcessInfo.processInfo.environment["GITHUB_TOKEN"], !token.isEmpty {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
         let (data, response) = try await URLSession.shared.data(for: request)
         guard (response as? HTTPURLResponse)?.statusCode == 200 else {
             throw UpdateError("GitHub didn't return the latest release.")

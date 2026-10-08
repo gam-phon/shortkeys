@@ -76,6 +76,8 @@ jobs:
           fi
 
       - name: Self-test (hotkey wiring + screenshots of every Settings page)
+        env:
+          GITHUB_TOKEN: ${{ github.token }} # the update check would hit the anonymous rate limit
         run: |
           # Hide the build folder: the app must work from its own bundle, as on
           # any other Mac (a release once found its resources only here).

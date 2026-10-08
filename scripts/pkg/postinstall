@@ -1,0 +1,7 @@
+#!/bin/bash
+# Reopen Shortkeys for the logged-in user (the installer itself runs as root).
+user="$(stat -f%Su /dev/console)"
+if [ -n "$user" ] && [ "$user" != "root" ]; then
+    launchctl asuser "$(id -u "$user")" sudo -u "$user" /usr/bin/open /Applications/Shortkeys.app || true
+fi
+exit 0

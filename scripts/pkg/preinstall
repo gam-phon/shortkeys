@@ -1,0 +1,4 @@
+#!/bin/bash
+# Quit Shortkeys before its files are replaced (replacing a running app's code gets it killed).
+pkill -x Shortkeys 2>/dev/null && sleep 1
+exit 0

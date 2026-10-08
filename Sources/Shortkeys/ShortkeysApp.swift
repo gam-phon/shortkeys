@@ -51,8 +51,16 @@ private struct MenuBarIcon: View {
 
 private struct MenuContent: View {
     private var status = Permissions.shared
+    private var updater = Updater.shared
 
     var body: some View {
+        if let release = updater.availableRelease {
+            Button("Update to Shortkeys \(release.version)…") {
+                SettingsModel.shared.page = .general
+                SettingsWindow.open()
+            }
+            Divider()
+        }
         if !status.isTrusted {
             Button("⚠︎ Grant Accessibility Access…") { status.openSystemSettings() }
             Divider()
@@ -93,8 +101,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if Snapshot.isRequested {
             // Self-tests run unattended (also in CI, without Accessibility access).
             Snapshot.runIfRequested()
+        } else if ProcessInfo.processInfo.arguments.contains("--update-test") {
+            // Developer test: install the latest release even if it isn't newer.
+            Task {
+                do {
+                    let release = try await Updater.fetchLatestRelease()
+                    log.info("update test: installing \(release.version, privacy: .public)")
+                    await Updater.shared.install(release)
+                    if case .failed(let message) = Updater.shared.state {
+                        log.error("update test failed: \(message, privacy: .public)")
+                        NSApp.terminate(nil)
+                    }
+                } catch {
+                    log.error("update test failed: \(error.localizedDescription, privacy: .public)")
+                    NSApp.terminate(nil)
+                }
+            }
         } else {
             Permissions.shared.promptIfNeeded()
+            if UserDefaults.standard.object(forKey: SettingsKey.checkForUpdates) as? Bool ?? true {
+                Task { await Updater.shared.checkIfDue() }
+            }
         }
     }
 

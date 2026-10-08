@@ -22,6 +22,7 @@ pkgbuild --analyze --root "$TMP/root" "$TMP/components.plist" >/dev/null
 plutil -replace 0.BundleIsRelocatable -bool NO "$TMP/components.plist"
 
 pkgbuild --root "$TMP/root" --component-plist "$TMP/components.plist" \
+    --scripts scripts/pkg \
     --install-location /Applications \
     --identifier com.yaser.shortkeys.pkg --version "$VERSION" \
     "dist/Shortkeys-$VERSION.pkg"

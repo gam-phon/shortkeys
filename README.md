@@ -50,34 +50,48 @@ Default hotkeys:
 
 ## Install
 
-Download the latest `Shortkeys-<version>.pkg` from
-[Releases](https://github.com/gam-phon/shortkeys/releases). Since this
-repository is private, the GitHub CLI is the easiest way:
+On any Mac with macOS 27, run this in Terminal:
 
 ```sh
-gh release download -R gam-phon/shortkeys -p 'Shortkeys-*.pkg' -D /tmp
-sudo installer -pkg /tmp/Shortkeys-*.pkg -target /
-open /Applications/Shortkeys.app
+curl -fsSL https://raw.githubusercontent.com/gam-phon/shortkeys/main/scripts/install-latest.sh | bash
 ```
 
-The installer isn't notarized by Apple (that needs a paid developer account).
-So if you download it in a browser and open it, macOS says *"Apple could not
-verify…"*. Click **Done**, then go to System Settings → Privacy & Security and
-click **Open Anyway**. Alternatively, remove the download mark in Terminal
-first:
+It downloads the latest release, checks its checksum and signature, installs it
+in /Applications (replacing any older copy) and opens it. Run the same command
+again to update.
 
-```sh
-xattr -d com.apple.quarantine ~/Downloads/Shortkeys-*.pkg
-```
-
-Files downloaded with `gh`, as shown above, don't get that mark.
+You can also download `Shortkeys-<version>.pkg` from
+[Releases](https://github.com/gam-phon/shortkeys/releases) and open it. The
+installer isn't notarized by Apple (that needs a paid developer account). So if
+macOS says *"Apple could not verify…"*, click **Done**, then go to System
+Settings → Privacy & Security and click **Open Anyway**.
 
 On first launch:
 
 1. **Allow Accessibility access.** Shortkeys explains why it needs it, then
    macOS asks you. Turn on **Shortkeys** under System Settings → Privacy &
-   Security → Accessibility.
+   Security → Accessibility. You only need to do this once per Mac. Updates
+   keep the permission, because every release is signed with the same
+   certificate.
 2. In Settings → **General**, turn on **Launch at Login**.
+
+## Updates
+
+Settings → General → **Updates** checks GitHub for a newer release. With "Check
+automatically" on, it checks when Shortkeys starts and when you open Settings.
+When an update is found, the menu bar menu also shows it.
+
+**Update to …** does four things:
+
+1. It downloads the release.
+2. It verifies the release's SHA-256 checksum and that it's signed by the same
+   certificate as the installed app. A download that fails either check is
+   never installed.
+3. It replaces the app in place.
+4. It restarts Shortkeys.
+
+Hotkeys, settings, Launch at Login and the Accessibility permission all carry
+over.
 
 ## Uninstall
 
@@ -125,11 +139,15 @@ To publish a release, push a version tag:
 git tag v1.1.0 && git push origin v1.1.0
 ```
 
-### Signing CI builds
+### Signing
 
-By default, CI builds are signed ad-hoc. That means each update asks for
-Accessibility access again. To sign CI builds with your own "Shortkeys Dev"
-certificate instead:
+Releases are signed in CI with the "Shortkeys Dev" certificate, which is stored
+in the repository secrets `SIGNING_CERT_P12` and `SIGNING_CERT_PASSWORD`. CI
+checks that each release carries it, and local builds use the same certificate
+from the login keychain. This one signature is what keeps the Accessibility
+permission across updates, and it's what the updater checks.
+
+To set up the certificate again (for example on a new build Mac):
 
 1. In Keychain Access, right-click **Shortkeys Dev** → **Export…**, and save it
    as `shortkeys-dev.p12` with a password.

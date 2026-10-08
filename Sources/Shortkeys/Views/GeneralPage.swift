@@ -3,7 +3,9 @@ import SwiftUI
 struct GeneralPage: View {
     @Bindable private var launchAtLogin = LaunchAtLogin.shared
     @AppStorage(SettingsKey.showMenuBarIcon) private var showMenuBarIcon = true
+    @AppStorage(SettingsKey.checkForUpdates) private var checkForUpdates = true
     private var permissions = Permissions.shared
+    private var updater = Updater.shared
 
     var body: some View {
         ScrollView {
@@ -17,6 +19,16 @@ struct GeneralPage: View {
                         SettingRow("Waiting for approval", detail: "Allow Shortkeys under Login Items in System Settings.") {
                             Button("Open Login Items…") { launchAtLogin.openLoginItemsSettings() }
                         }
+                    }
+                }
+
+                SettingsGroup(title: "Updates") {
+                    SettingRow("Shortkeys \(updater.currentVersion)", detail: updateStatus) {
+                        updateControl
+                    }
+                    Divider()
+                    SettingRow("Check automatically", detail: "Look for a new version when Shortkeys starts and when you open Settings.") {
+                        Toggle("Check automatically", isOn: $checkForUpdates)
                     }
                 }
 
@@ -55,7 +67,36 @@ struct GeneralPage: View {
             .padding(20)
         }
         .navigationTitle("General")
-        .task { launchAtLogin.refresh() }
+        .task {
+            launchAtLogin.refresh()
+            if checkForUpdates { await updater.checkIfDue() }
+        }
+    }
+
+    private var updateStatus: String {
+        switch updater.state {
+        case .idle: "Check GitHub for a newer version."
+        case .checking: "Checking for updates…"
+        case .upToDate: "You're using the latest version."
+        case .available(let release): "Version \(release.version) is available. It installs and restarts Shortkeys; your hotkeys and settings are kept."
+        case .downloading: "Downloading and verifying the update…"
+        case .installing: "Installing… Shortkeys will restart."
+        case .failed(let message): message
+        }
+    }
+
+    @ViewBuilder private var updateControl: some View {
+        if updater.isBusy {
+            ProgressView().controlSize(.small)
+        } else if let release = updater.availableRelease {
+            HStack {
+                Link("What's New", destination: release.pageURL)
+                Button("Update to \(release.version)") { Task { await updater.install(release) } }
+                    .buttonStyle(.borderedProminent)
+            }
+        } else {
+            Button("Check Now") { Task { await updater.check() } }
+        }
     }
 }
 

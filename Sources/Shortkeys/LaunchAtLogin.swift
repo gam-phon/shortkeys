@@ -47,4 +47,6 @@ final class LaunchAtLogin {
 enum SettingsKey {
     /// Whether the ⌘ icon is shown in the menu bar.
     static let showMenuBarIcon = "showMenuBarIcon"
+    /// Whether to look for a newer release at launch and when Settings opens.
+    static let checkForUpdates = "checkForUpdates"
 }

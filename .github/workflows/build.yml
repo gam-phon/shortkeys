@@ -66,6 +66,15 @@ jobs:
       - name: Build
         run: SDKROOT="$(xcrun --sdk macosx --show-sdk-path)" ./build.sh
 
+      - name: Check the signature
+        run: |
+          codesign --verify --strict build/Shortkeys.app
+          if [ -n "$SIGNING_CERT_P12" ]; then
+            # Releases must carry the "Shortkeys Dev" certificate, so updates keep
+            # their Accessibility permission and pass the in-app updater's check.
+            codesign -dr - build/Shortkeys.app 2>&1 | tee /dev/stderr | grep -q "certificate leaf"
+          fi
+
       - name: Self-test (hotkey wiring + screenshots of every Settings page)
         run: |
           # Hide the build folder: the app must work from its own bundle, as on

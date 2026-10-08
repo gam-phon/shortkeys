@@ -100,6 +100,20 @@ open build/Shortkeys.app --args --e2e-test /tmp/sk-e2e     # real clicks/keys: r
 - **Notifications.** Observe them by name with `NotificationCenter.observe`.
   The macOS 26+ typed messages (`addObserver(of:for:)`) don't deliver here.
 
+## Releases and updates
+
+- **Signing.** Releases are signed by CI with the "Shortkeys Dev" certificate,
+  which is stored in repo secrets. The same identity is in the owner's login
+  keychain. Its leaf hash is b5641894…; changing it breaks updates and the
+  Accessibility grants.
+- **The updater** (`Updater.swift`) checks GitHub's latest release, verifies
+  its SHA-256 and that the update satisfies the running app's designated
+  requirement, then swaps the app via a helper script and relaunches.
+  `--update-test` installs the latest release regardless of version.
+- **Install script.** `scripts/install-latest.sh` (curl | bash) installs or
+  updates on any Mac. The .pkg's preinstall and postinstall scripts quit and
+  reopen the app.
+
 ## Vendored KeyboardShortcuts
 
 `Vendor/KeyboardShortcuts` is version 2.4.0 with patches, listed in its

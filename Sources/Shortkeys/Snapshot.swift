@@ -145,6 +145,7 @@ enum Snapshot {
             "update paths have no trailing slash",
             Updater.plainPath(URL(filePath: "/Applications/Shortkeys.app/", directoryHint: .isDirectory)) == "/Applications/Shortkeys.app"
         )
+        check("admin commands quote paths safely", AdminPrompt.quoted("/a b/it's") == "'/a b/it'\\''s'")
         let latest = try? await Updater.fetchLatestRelease()
         check("latest release on GitHub has an app download and checksums (\(latest?.version ?? "none"))", latest != nil)
         // The recorder's strings ("Record Hotkey") must load from the app itself,

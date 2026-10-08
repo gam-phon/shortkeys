@@ -7,7 +7,12 @@ struct ShortkeysApp: App {
     @AppStorage(SettingsKey.showMenuBarIcon) private var showMenuBarIcon = true
 
     var body: some Scene {
-        MenuBarExtra(isInserted: $showMenuBarIcon) {
+        // Write the setting only when it actually changes: SwiftUI sets this on
+        // every insertion, which recreated the setting after an uninstall.
+        MenuBarExtra(isInserted: Binding(
+            get: { showMenuBarIcon },
+            set: { if $0 != showMenuBarIcon { showMenuBarIcon = $0 } }
+        )) {
             MenuContent()
         } label: {
             MenuBarIcon()
@@ -117,6 +122,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     NSApp.terminate(nil)
                 }
             }
+        } else if ProcessInfo.processInfo.arguments.contains("--setup") {
+            // First install (scripts/install-latest.sh): do every setup step that
+            // doesn't need the user, then ask for the one that does.
+            LaunchAtLogin.shared.isEnabled = true
+            SettingsModel.shared.page = .general
+            SettingsWindow.show()
+            Permissions.shared.requestAccess()
         } else {
             Permissions.shared.promptIfNeeded()
             if UserDefaults.standard.object(forKey: SettingsKey.checkForUpdates) as? Bool ?? true {

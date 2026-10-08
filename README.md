@@ -56,9 +56,11 @@ On any Mac with macOS 27, run this in Terminal:
 curl -fsSL https://raw.githubusercontent.com/gam-phon/shortkeys/main/scripts/install-latest.sh | bash
 ```
 
-It downloads the latest release, checks its checksum and signature, installs it
-in /Applications (replacing any older copy) and opens it. Run the same command
-again to update.
+It downloads the latest release and checks its checksum and signature. Then it
+installs Shortkeys in /Applications and, on a first install, sets it up: Launch
+at Login is turned on, and the Accessibility prompt appears. Turn on Shortkeys
+there, and you're done. Running the same command again updates an existing
+install.
 
 You can also download `Shortkeys-<version>.pkg` from
 [Releases](https://github.com/gam-phon/shortkeys/releases) and open it. The

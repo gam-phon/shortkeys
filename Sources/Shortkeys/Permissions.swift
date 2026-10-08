@@ -57,6 +57,14 @@ final class Permissions {
         NSWorkspace.shared.open(url)
     }
 
+    /// Asks macOS for Accessibility access: adds Shortkeys to the list and
+    /// offers to open System Settings. The key is `kAXTrustedCheckOptionPrompt`'s value.
+    func requestAccess() {
+        refresh()
+        guard !isTrusted else { return }
+        _ = AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
+    }
+
     /// Shown once at launch if the permission is missing.
     func promptIfNeeded() {
         refresh()
@@ -77,10 +85,7 @@ final class Permissions {
         alert.addButton(withTitle: "Continue")
         alert.addButton(withTitle: "Later")
         if alert.runModal() == .alertFirstButtonReturn {
-            // The system prompt adds Shortkeys to the Accessibility list (so the
-            // user only flips its switch) and offers to open System Settings.
-            // The key is the value of `kAXTrustedCheckOptionPrompt`.
-            _ = AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
+            requestAccess()
         }
     }
 }

@@ -110,6 +110,13 @@ open build/Shortkeys.app --args --e2e-test /tmp/sk-e2e     # real clicks/keys: r
   its SHA-256 and that the update satisfies the running app's designated
   requirement, then swaps the app via a helper script and relaunches.
   `--update-test` installs the latest release regardless of version.
+- **Ownership.** The .pkg installs as root, so postinstall `chown`s the app
+  to the user. Update and uninstall fall back to `AdminPrompt` (the standard
+  password dialog) for a root-owned copy.
+- **Test hygiene.** `--update-test` relaunches the updated copy as a normal
+  app. Afterwards, wait for the relaunch, kill it, and check
+  `ps -axo command | grep Shortkeys.app` for strays. A stray once kept
+  rewriting settings and showed permission prompts to the user.
 - **Install script.** `scripts/install-latest.sh` (curl | bash) installs or
   updates on any Mac. The .pkg's preinstall and postinstall scripts quit and
   reopen the app.

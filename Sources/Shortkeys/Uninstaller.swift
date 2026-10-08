@@ -26,26 +26,77 @@ enum Uninstaller {
     static func uninstall() {
         try? SMAppService.mainApp.unregister()
 
-        if let bundleID = Bundle.main.bundleIdentifier {
-            UserDefaults.standard.removePersistentDomain(forName: bundleID)
-            // An app may reset its own Accessibility entry; no admin rights needed.
-            let tccutil = Process()
-            tccutil.executableURL = URL(filePath: "/usr/bin/tccutil")
-            tccutil.arguments = ["reset", "Accessibility", bundleID]
-            try? tccutil.run()
-            tccutil.waitUntilExit()
+        let bundleID = Bundle.main.bundleIdentifier ?? "com.yaser.shortkeys"
+        UserDefaults.standard.removePersistentDomain(forName: bundleID)
+        // An app may reset its own Accessibility entry; no admin rights needed.
+        run("/usr/bin/tccutil", ["reset", "Accessibility", bundleID])
+
+        // Caches macOS keeps for the app (URLSession downloads, window state).
+        let library = URL.libraryDirectory
+        for leftover in [
+            library.appending(path: "HTTPStorages/\(bundleID)"),
+            library.appending(path: "Caches/\(bundleID)"),
+            library.appending(path: "Saved Application State/\(bundleID).savedState"),
+        ] {
+            try? FileManager.default.removeItem(at: leftover)
         }
 
         let app = Bundle.main.bundleURL
         NSWorkspace.shared.recycle([app]) { _, error in
-            if let error {
-                log.error("moving Shortkeys to the Trash failed: \(error.localizedDescription, privacy: .public)")
-            }
             Task { @MainActor in
-                // Write after the settings domain was removed, and don't save it again.
-                UserDefaults.standard.removePersistentDomain(forName: Bundle.main.bundleIdentifier ?? "")
-                NSApp.terminate(nil)
+                if error != nil {
+                    // Installed by the .pkg as root: moving it needs an admin password.
+                    let trash = URL.homeDirectory.appending(path: ".Trash/Shortkeys.app")
+                    let moved = AdminPrompt.run(
+                        "mv -f \(AdminPrompt.quoted(Updater.plainPath(app))) \(AdminPrompt.quoted(Updater.plainPath(trash)))",
+                        reason: "Shortkeys needs your password to move itself to the Trash."
+                    )
+                    if !moved {
+                        log.error("moving Shortkeys to the Trash failed: \(error?.localizedDescription ?? "", privacy: .public)")
+                    }
+                }
+                // Remove the settings once more and exit right away: SwiftUI writes
+                // some settings while it runs and shuts down, which would recreate them.
+                UserDefaults.standard.removePersistentDomain(forName: bundleID)
+                exit(0)
             }
         }
+    }
+
+    private static func run(_ tool: String, _ arguments: [String]) {
+        let process = Process()
+        process.executableURL = URL(filePath: tool)
+        process.arguments = arguments
+        try? process.run()
+        process.waitUntilExit()
+    }
+}
+
+/// Runs a shell command as administrator, after macOS's standard password prompt.
+@MainActor
+enum AdminPrompt {
+    /// Returns whether the command ran and succeeded (false if the user cancelled).
+    @discardableResult
+    static func run(_ command: String, reason: String) -> Bool {
+        let script = "do shell script \(appleScriptString(command)) with prompt \(appleScriptString(reason)) with administrator privileges"
+        let osascript = Process()
+        osascript.executableURL = URL(filePath: "/usr/bin/osascript")
+        osascript.arguments = ["-e", script]
+        do {
+            try osascript.run()
+        } catch {
+            return false
+        }
+        osascript.waitUntilExit()
+        return osascript.terminationStatus == 0
+    }
+
+    /// A path quoted for the shell.
+    static func quoted(_ path: String) -> String {
+        "'" + path.replacingOccurrences(of: "'", with: "'\\''") + "'"
+    }
+
+    private static func appleScriptString(_ text: String) -> String {
+        "\"" + text.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"") + "\""
     }
 }

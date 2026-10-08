@@ -215,6 +215,18 @@ final class Updater {
         guard FileManager.default.isWritableFile(atPath: parent) else {
             throw UpdateError("Shortkeys can't write to \(parent). Install the update from the release page instead.")
         }
+        // Installed by an older .pkg as root: take ownership once (password prompt),
+        // so the app can be replaced now and in future updates.
+        let owner = try? FileManager.default.attributesOfItem(atPath: target)[.ownerAccountID] as? NSNumber
+        if owner?.uint32Value != getuid() {
+            let user = NSUserName()
+            guard AdminPrompt.run(
+                "chown -R \(AdminPrompt.quoted(user)):staff \(AdminPrompt.quoted(target))",
+                reason: "Shortkeys needs your password once to install updates."
+            ) else {
+                throw UpdateError("The update was cancelled.")
+            }
+        }
         let script = """
             pid="$1"; target="${2%/}"; new="${3%/}"
             while kill -0 "$pid" 2>/dev/null; do sleep 0.2; done

@@ -79,6 +79,14 @@ On first launch:
    Security → Accessibility.
 2. In Settings → **General**, turn on **Launch at Login**.
 
+## Uninstall
+
+```sh
+/Applications/Shortkeys.app/Contents/MacOS/Shortkeys --uninstall   # removes the login item and settings
+tccutil reset Accessibility com.yaser.shortkeys                     # removes the Accessibility entry
+mv /Applications/Shortkeys.app ~/.Trash/
+```
+
 ## Build from source
 
 You only need the Xcode Command Line Tools (`xcode-select --install`).

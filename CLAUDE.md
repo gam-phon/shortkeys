@@ -78,6 +78,16 @@ open build/Shortkeys.app --args --e2e-test /tmp/sk-e2e     # real clicks/keys: r
     toolbar controls change the title-bar height between pages.
   - Rows use `GroupedRows`/`SettingsGroup` (a LazyVStack), never `List` or
     `Form`: table views steal focus from recorders.
+- **Settings layout pitfalls.** All three were found the hard way:
+  - Never use `.fixedSize(horizontal: false, vertical: true)` on text in the
+    settings pages. With `.windowResizability(.contentMinSize)`, SwiftUI then
+    measures the text one word per line, and the window contents grow
+    thousands of points tall.
+  - `.navigationSplitViewColumnWidth` must come after
+    `.toolbar(removing: .sidebarToggle)`, or it's ignored and the sidebar
+    falls back to 140 points.
+  - A SwiftUI window's `contentMinSize` is zero; use
+    `SettingsView.minimumSize`. The saved split position is cleared at launch.
 - **Opening Settings.** `SettingsWindow.open()` activates through
   LaunchServices, opening its own bundle, because `NSApp.activate()` is
   declined for a menu bar app. The reopen event then calls `show()`.

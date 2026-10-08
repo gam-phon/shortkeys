@@ -66,7 +66,6 @@ struct SettingsGroup<Content: View>: View {
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 4)
-                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }

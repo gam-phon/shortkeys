@@ -20,3 +20,6 @@ Patched so it builds against the macOS 27 SDK with only the Command Line Tools
 - RecorderCocoa.swift: `controlTextDidEndEditing` only stops recording if editing has really
   ended (checked on the next run-loop turn). In apps built for macOS 26+, a click ends and
   immediately restarts editing.
+- Utilities.swift: localized strings come from `KeyboardShortcuts_KeyboardShortcuts.bundle` in the
+  app's `Contents/Resources`, not `Bundle.module`. Xcode's toolchain generates a `Bundle.module`
+  that doesn't look there, so CI-built releases crashed when a recorder appeared.

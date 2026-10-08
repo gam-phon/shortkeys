@@ -68,6 +68,9 @@ jobs:
 
       - name: Self-test (hotkey wiring + screenshots of every Settings page)
         run: |
+          # Hide the build folder: the app must work from its own bundle, as on
+          # any other Mac (a release once found its resources only here).
+          mv .build "$RUNNER_TEMP/swiftpm-build"
           SNAPS="$RUNNER_TEMP/snapshots"
           build/Shortkeys.app/Contents/MacOS/Shortkeys --snapshot "$SNAPS" &
           for i in $(seq 1 120); do [ -f "$SNAPS/selftest.txt" ] && break; sleep 1; done

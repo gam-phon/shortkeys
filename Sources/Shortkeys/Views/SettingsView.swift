@@ -34,6 +34,10 @@ final class SettingsModel {
 
 struct SettingsView: View {
     static let windowID = "settings"
+    static let minimumSize = CGSize(width: 680, height: 460)
+    /// Where AppKit saves the sidebar/page split. Cleared at launch so a bad
+    /// saved value (e.g. from a tiny window) can never break the layout.
+    static let splitViewAutosaveKey = "NSSplitView Subview Frames settings, SidebarNavigationSplitView"
 
     @Bindable private var model = SettingsModel.shared
 
@@ -46,8 +50,10 @@ struct SettingsView: View {
                 Label { Text(page.title) } icon: { page.icon }
                     .tag(page)
             }
-            .navigationSplitViewColumnWidth(min: 190, ideal: 210, max: 260)
             .toolbar(removing: .sidebarToggle)
+            // Fixed, like System Settings. Must come after `toolbar(removing:)`,
+            // which otherwise drops it (the sidebar fell back to 140 points).
+            .navigationSplitViewColumnWidth(210)
         } detail: {
             Group {
                 switch model.page ?? .general {
@@ -62,7 +68,7 @@ struct SettingsView: View {
             // instead of a separate toolbar band with a hard edge and separator.
             .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
         }
-        .frame(minWidth: 680, minHeight: 460)
+        .frame(minWidth: Self.minimumSize.width, minHeight: Self.minimumSize.height)
         .onAppear {
             DockIcon.show()
             Permissions.shared.refresh()
@@ -105,7 +111,6 @@ private struct StatusBanner: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.headline)
                 Text(message).font(.callout).foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 8)
             if let action {

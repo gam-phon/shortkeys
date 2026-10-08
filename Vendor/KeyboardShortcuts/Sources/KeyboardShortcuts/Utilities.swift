@@ -4,12 +4,35 @@ import SwiftUI
 import Carbon.HIToolbox
 
 
+/**
+Shortkeys patch: the library's localized strings, found without `Bundle.module`.
+
+The `Bundle.module` accessor that SwiftPM generates depends on the toolchain. The
+one from Xcode's toolchain (used in CI) only looks next to `Contents/`, and in the
+build folder on the build machine, so on any other Mac it called `fatalError` and
+the app crashed as soon as a recorder appeared. An app keeps the resource bundle
+in `Contents/Resources`, so look there (and next to a command-line tool).
+*/
+let localizationBundle: Bundle? = {
+	let name = "KeyboardShortcuts_KeyboardShortcuts.bundle"
+	for directory in [Bundle.main.resourceURL, Bundle.main.bundleURL] {
+		if let url = directory?.appendingPathComponent(name), let bundle = Bundle(url: url) {
+			return bundle
+		}
+	}
+	return nil
+}()
+
 extension String {
 	/**
-	Makes the string localizable.
+	Makes the string localizable. Falls back to the key itself if the strings are missing.
 	*/
 	var localized: String {
-		NSLocalizedString(self, bundle: .module, comment: self)
+		guard let localizationBundle else {
+			return self
+		}
+
+		return NSLocalizedString(self, bundle: localizationBundle, comment: self)
 	}
 }
 

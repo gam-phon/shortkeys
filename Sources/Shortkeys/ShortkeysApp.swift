@@ -75,6 +75,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // user hides it), which makes it a candidate for automatic termination.
         // Its hotkeys must keep working, so opt out.
         ProcessInfo.processInfo.disableAutomaticTermination("Shortkeys listens for global hotkeys")
+        // Always start Settings with the standard sidebar width.
+        UserDefaults.standard.removeObject(forKey: SettingsView.splitViewAutosaveKey)
         // Before any shortcut name is created: Shortkeys delivers hotkeys
         // itself (HotkeyCenter), so KeyboardShortcuts must not register them.
         KeyboardShortcuts.isEnabled = false

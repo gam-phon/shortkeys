@@ -78,7 +78,6 @@ private struct SettingRow<Control: View>: View {
                 Text(detail)
                     .font(.callout)
                     .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 8)
             control

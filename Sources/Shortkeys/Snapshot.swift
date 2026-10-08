@@ -80,10 +80,11 @@ enum Snapshot {
         save("4d-about", to: folder)
         settings.page = .apps
 
-        // Smallest allowed window: toolbar and rows must not overlap.
+        // Smallest allowed window: toolbar and rows must not overlap. (The size
+        // is explicit: a SwiftUI window's `contentMinSize` is zero.)
         if let window = NSApp.windows.first(where: { $0.isVisible && $0.canBecomeMain }) {
             let original = window.frame
-            window.setContentSize(window.contentMinSize)
+            window.setContentSize(SettingsView.minimumSize)
             catalog.search = "Notes"
             try? await Task.sleep(for: .seconds(1))
             save("5-apps-narrow", to: folder)
@@ -138,6 +139,13 @@ enum Snapshot {
             check("Firefox keeps its hotkey", KeyboardShortcuts.getShortcut(for: firefox) == firefoxShortcut)
         }
         check("Carbon backend is disabled", !KeyboardShortcuts.isEnabled)
+        // The recorder's strings ("Record Hotkey") must load from the app itself,
+        // not from the build machine (CI hides its build folder for this check).
+        let strings = Bundle.main.resourceURL?.appending(path: "KeyboardShortcuts_KeyboardShortcuts.bundle")
+        check(
+            "recorder strings are bundled in the app",
+            strings.flatMap(Bundle.init(url:))?.localizedString(forKey: "record_shortcut", value: nil, table: nil) == "Record Hotkey"
+        )
         return lines
     }
 

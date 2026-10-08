@@ -41,7 +41,7 @@ Default hotkeys:
 | ⌥G     | Claude  | ⌃⌥K    | Top Half    |
 |        |         | ⌃⌥J    | Bottom Half |
 |        |         | ⌃⌥M    | Maximize    |
-|        |         | ⌥O     | Top Center Two Thirds |
+|        |         | ⌃⌥O    | Top Center Two Thirds |
 
 <p>
   <img src="docs/screenshots/general.png" width="49%" alt="General settings page">

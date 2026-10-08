@@ -185,13 +185,13 @@ enum WindowCommand: String, CaseIterable, Identifiable {
 
     var shortcutName: KeyboardShortcuts.Name {
         let defaultShortcut: KeyboardShortcuts.Shortcut? = switch self {
-        // Vim-style defaults on ⌃⌥.
+        // Defaults on ⌃⌥ (Vim-style for the halves).
         case .leftHalf: .init(.h, modifiers: [.control, .option])
         case .rightHalf: .init(.l, modifiers: [.control, .option])
         case .topHalf: .init(.k, modifiers: [.control, .option])
         case .bottomHalf: .init(.j, modifiers: [.control, .option])
         case .maximize: .init(.m, modifiers: [.control, .option])
-        case .topCenterTwoThirds: .init(.o, modifiers: [.option])
+        case .topCenterTwoThirds: .init(.o, modifiers: [.control, .option])
         default: nil
         }
         return KeyboardShortcuts.Name("window:\(rawValue)", default: defaultShortcut)

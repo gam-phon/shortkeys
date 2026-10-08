@@ -26,6 +26,11 @@ README.md.
     `@AppStorage`.
 - Inside Claude Code's sandbox, SwiftPM fails: its nested sandbox and git
   writes are blocked. Run the build outside the sandbox.
+- `build.sh` unregisters `build/Shortkeys.app` from Launch Services, and
+  `install.sh` moves the app rather than copying it. This keeps a stray build
+  copy from being opened instead of /Applications. Its Accessibility grant
+  differs from the release build's, because it has a different signature.
+  After testing, delete `build/` if an installed copy exists.
 - **Quit Shortkeys before rebuilding.** Replacing the binary of the running
   app gets it killed.
 - Signing fails with `errSecInternalComponent` if the key's partition list

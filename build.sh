@@ -52,4 +52,10 @@ codesign --verify --strict "$STAGE"
 rm -rf "$APP"
 mv "$STAGE" "$APP"
 rm -rf build/.staging
+
+# Keep this development copy out of Launch Services, so opening "Shortkeys"
+# (Spotlight, Launchpad, the reopen-to-show-Settings path) uses the installed
+# app in /Applications. `open build/Shortkeys.app` still works.
+LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+"$LSREGISTER" -u "$APP" 2>/dev/null || true
 echo "Built $APP"

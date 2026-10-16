@@ -37,9 +37,9 @@ Default hotkeys:
 | Hotkey | Action  | Hotkey | Action      |
 |--------|---------|--------|-------------|
 | ⌥B     | Firefox | ⌃⌥H    | Left Half   |
-| ⌥T     | WezTerm | ⌃⌥L    | Right Half  |
+| ⌥T     | Ghostty | ⌃⌥L    | Right Half  |
 | ⌥G     | Claude  | ⌃⌥K    | Top Half    |
-|        |         | ⌃⌥J    | Bottom Half |
+| ⌥N     | Notes   | ⌃⌥J    | Bottom Half |
 |        |         | ⌃⌥M    | Maximize    |
 |        |         | ⌃⌥O    | Top Center Two Thirds |
 
@@ -190,7 +190,7 @@ To set up the certificate again (for example on a new build Mac):
 ```sh
 scripts/test-geometry.sh                                   # window layout maths, incl. multiple displays
 open build/Shortkeys.app --args --snapshot /tmp/sk-snaps   # page screenshots + hotkey wiring checks
-open build/Shortkeys.app --args --e2e-test /tmp/sk-e2e     # clicks a recorder and presses ⌥N, then restores
+open build/Shortkeys.app --args --e2e-test /tmp/sk-e2e     # clicks a recorder and presses ⌥Y, then restores
 ```
 
 Quit the running copy before running the last two. Both quit when they finish.

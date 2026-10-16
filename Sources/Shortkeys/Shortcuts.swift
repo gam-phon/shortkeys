@@ -15,8 +15,9 @@ final class AppHotkeys {
 
     static let defaultShortcuts: [String: KeyboardShortcuts.Shortcut] = [
         "org.mozilla.firefox": .init(.b, modifiers: .option),
-        "com.github.wez.wezterm": .init(.t, modifiers: .option),
+        "com.mitchellh.ghostty": .init(.t, modifiers: .option),
         "com.anthropic.claudefordesktop": .init(.g, modifiers: .option),
+        "com.apple.Notes": .init(.n, modifiers: .option),
     ]
 
     private let registryKey = "appShortcutIDs"

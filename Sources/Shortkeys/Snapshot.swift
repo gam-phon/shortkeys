@@ -8,7 +8,7 @@ import KeyboardShortcuts
 ///   `selftest.txt`, a check of the hotkey wiring. Presses no keys.
 /// - `open Shortkeys.app --args --e2e-test <folder>`: drives the real UI with
 ///   synthetic input, like a user: click the menu bar icon, choose Open
-///   Settings… (⌘,), click a recorder, press ⌥N. Writes `e2e.txt` and restores
+///   Settings… (⌘,), click a recorder, press ⌥Y. Writes `e2e.txt` and restores
 ///   the shortcuts it touched.
 @MainActor
 enum Snapshot {
@@ -178,8 +178,8 @@ enum Snapshot {
             let recorded = await recordThroughUI(page: page, name: name, steps: &steps)
             lines += steps.map { "     \(page.title): \($0)" }
             KeyboardShortcuts.setShortcut(saved, for: name)
-            let ok = recorded == KeyboardShortcuts.Shortcut(.n, modifiers: .option)
-            lines.append("\(ok ? "ok  " : "FAIL") \(page.title): click recorder, press ⌥N → \(recorded.map { "\($0)" } ?? "nothing recorded")")
+            let ok = recorded == KeyboardShortcuts.Shortcut(.y, modifiers: .option)
+            lines.append("\(ok ? "ok  " : "FAIL") \(page.title): click recorder, press ⌥Y → \(recorded.map { "\($0)" } ?? "nothing recorded")")
             lines.append("\(KeyboardShortcuts.getShortcut(for: name) == saved ? "ok  " : "FAIL") \(page.title): original hotkey restored")
             lines.append("\(HotkeyCenter.shared.isRecordingShortcut ? "FAIL" : "ok  ") \(page.title): hotkeys active again after recording")
         }
@@ -230,7 +230,7 @@ enum Snapshot {
         try? await Task.sleep(for: .seconds(0.5))
         let focused = (window.firstResponder as? NSView)?.isDescendant(of: recorder) == true || window.firstResponder === recorder
         note("after clicking recorder: \(state()) recorderFocused=\(focused)")
-        postKey(45, flags: .maskAlternate) // ⌥N
+        postKey(16, flags: .maskAlternate) // ⌥Y
         try? await Task.sleep(for: .seconds(0.7))
         let recorded = KeyboardShortcuts.getShortcut(for: name)
         window.performClose(nil)

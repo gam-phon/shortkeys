@@ -45,7 +45,7 @@ README.md.
 ```sh
 scripts/test-geometry.sh                                   # pure layout maths
 open build/Shortkeys.app --args --snapshot /tmp/sk-snaps   # PNG of every page + selftest.txt
-open build/Shortkeys.app --args --e2e-test /tmp/sk-e2e     # real clicks/keys: record ⌥N via the UI
+open build/Shortkeys.app --args --e2e-test /tmp/sk-e2e     # real clicks/keys: record ⌥Y via the UI
 ```
 
 - `--snapshot` captures the window offscreen. It can't show live effects such

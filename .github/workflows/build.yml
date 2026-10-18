@@ -111,7 +111,7 @@ jobs:
           cat > "$RUNNER_TEMP/notes.md" <<NOTES
           ## Install
 
-          Download \`Shortkeys-$VERSION.pkg\` and open it. Requires macOS 27.
+          Download \`Shortkeys-$VERSION.pkg\` and open it. Requires macOS 26 or later.
 
           **"Apple could not verify…"**: the installer isn't notarized by Apple, so macOS blocks the first open. Click **Done**, then go to System Settings → Privacy & Security, click **Open Anyway** next to Shortkeys, and enter your password. Or install from Terminal:
 

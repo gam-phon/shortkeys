@@ -1,14 +1,14 @@
 # Shortkeys: notes for Claude Code
 
-A menu bar app for macOS 27+ with app-launch hotkeys and window-management
+A menu bar app for macOS 26+ with app-launch hotkeys and window-management
 hotkeys. It's built with Swift 6 + SwiftUI via SwiftPM. User docs are in
 README.md.
 
 ## Ground rules from the owner
 
-- **macOS 27+ only.** Don't add fallbacks or availability checks for older
+- **macOS 26+ only.** Don't add fallbacks or availability checks for older
   macOS.
-- **No deprecated APIs.** Use the current recommended macOS 27 APIs and modern
+- **No deprecated APIs.** Use the current recommended macOS 26+ APIs and modern
   SwiftUI. A clean build must have zero warnings.
 - **Verify before saying it works.** Run the tests below. UI changes need a
   snapshot check.

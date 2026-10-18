@@ -6,7 +6,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 SIGN_IDENTITY="${SIGN_IDENTITY:-Shortkeys Dev}"
-# Build against the macOS 27 SDK (override with SDKROOT=...).
+# Build against the macOS 27 SDK if installed, else the default SDK (override with SDKROOT=...).
 export SDKROOT="${SDKROOT:-$(xcrun --sdk macosx27.0 --show-sdk-path 2>/dev/null || xcrun --sdk macosx --show-sdk-path)}"
 echo "SDK: $SDKROOT"
 APP="build/Shortkeys.app"

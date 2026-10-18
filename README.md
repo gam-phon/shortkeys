@@ -1,6 +1,6 @@
 # Shortkeys
 
-A small, native menu bar app for macOS 27+ with two features:
+A small, native menu bar app for macOS 26+ with two features:
 **hotkeys that open apps** and **hotkeys that arrange windows**.
 
 <p>
@@ -50,7 +50,7 @@ Default hotkeys:
 
 ## Install
 
-On any Mac with macOS 27, run this in Terminal:
+On any Mac with macOS 26 or later, run this in Terminal:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/gam-phon/shortkeys/main/scripts/install-latest.sh | bash

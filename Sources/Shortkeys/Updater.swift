@@ -255,7 +255,19 @@ final class Updater {
         }
 
         try verifySignature(of: app)
+        try verifyRunsOnThisMac(app)
         return app
+    }
+
+    /// The new app's LSMinimumSystemVersion must not be newer than this macOS,
+    /// or the swapped-in app would refuse to open.
+    nonisolated static func verifyRunsOnThisMac(_ app: URL) throws {
+        let minimum = Bundle(url: app)?.infoDictionary?["LSMinimumSystemVersion"] as? String ?? "0"
+        let running = ProcessInfo.processInfo.operatingSystemVersion
+        let current = "\(running.majorVersion).\(running.minorVersion).\(running.patchVersion)"
+        if isVersion(minimum, newerThan: current) {
+            throw UpdateError("This update needs macOS \(minimum) or later.")
+        }
     }
 
     /// The new app must be signed by the same certificate as this one.

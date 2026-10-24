@@ -87,16 +87,19 @@ private struct StatusBanner: View {
             if !status.isTrusted {
                 banner(
                     title: "Accessibility access is off",
-                    message: "Hotkeys and window commands won't work until Shortkeys is turned on in Privacy & Security → Accessibility.",
+                    message: "Window hotkeys and switching between an app's windows won't work until Shortkeys is turned on in Privacy & Security → Accessibility. App hotkeys work without it.",
                     action: ("Open System Settings", { status.openSystemSettings() })
                 )
             }
-            if let holder = status.secureInputHolder {
+            let paused = HotkeyCenter.shared.blockedBySecureInput
+            if let holder = status.secureInputHolder, !paused.isEmpty {
+                let list = paused.map { "\($0)" }.formatted(.list(type: .and))
+                let cause = holder == "loginwindow"
+                    ? "macOS left secure input on after unlocking. Until you lock and unlock the screen,"
+                    : "\(holder) has secure input on (usually a password field or a terminal setting). Until it's off,"
                 banner(
-                    title: "Hotkeys are paused by Secure Keyboard Entry",
-                    message: holder == "loginwindow"
-                        ? "macOS left secure input on after unlocking. Lock and unlock the screen, or log out and back in."
-                        : "\(holder) has secure input on (usually a password field or a terminal setting). Hotkeys resume when it's turned off.",
+                    title: paused.count == 1 ? "\(list) is paused by Secure Keyboard Entry" : "\(list) are paused by Secure Keyboard Entry",
+                    message: "\(cause) macOS blocks hotkeys that use only ⌥ or ⌥⇧. Hotkeys with ⌃ or ⌘ keep working; add one to a hotkey to keep it working too.",
                     action: nil
                 )
             }

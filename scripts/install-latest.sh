@@ -28,7 +28,11 @@ codesign --verify --strict "${TMP}/unpacked/Shortkeys.app"
 FIRST_INSTALL=1
 [ -e "${APP}" ] && FIRST_INSTALL=0
 if [ "${OPEN_APP}" = 1 ]; then
-    pkill -x Shortkeys 2>/dev/null && sleep 1 || true
+    if pkill -x Shortkeys 2>/dev/null; then
+        # Wait until it has really exited (up to 10 s), then make sure.
+        for _ in $(seq 50); do pgrep -x Shortkeys >/dev/null || break; sleep 0.2; done
+        pkill -9 -x Shortkeys 2>/dev/null || true
+    fi
 fi
 ditto "${TMP}/unpacked/Shortkeys.app" "${APP}.updating"
 # A copy installed by an older .pkg belongs to root; removing it needs sudo.
@@ -50,6 +54,6 @@ One last step: macOS asks you to allow Shortkeys under Accessibility.
 Click "Open System Settings" and turn on Shortkeys. Hotkeys start working right away.
 MSG
 else
-    [ "${OPEN_APP}" = 1 ] && open "${APP}"
+    [ "${OPEN_APP}" = 1 ] && open -n "${APP}"
     echo "Updated Shortkeys to ${VERSION}."
 fi

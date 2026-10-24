@@ -73,8 +73,8 @@ private struct MenuContent: View {
         if !status.isTrusted {
             Button("⚠︎ Grant Accessibility Access…") { status.openSystemSettings() }
             Divider()
-        } else if let holder = status.secureInputHolder {
-            Text("⚠︎ Hotkeys paused: secure input on (\(holder))")
+        } else if let holder = status.secureInputHolder, !HotkeyCenter.shared.blockedBySecureInput.isEmpty {
+            Text("⚠︎ ⌥ hotkeys paused: secure input on (\(holder))")
             Divider()
         }
         Button("Open Settings…") { SettingsWindow.open() }
@@ -130,6 +130,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
         } else if ProcessInfo.processInfo.arguments.contains("--setup") {
+            quitOtherCopies()
             // First install (scripts/install-latest.sh): do every setup step that
             // doesn't need the user, then ask for the one that does.
             LaunchAtLogin.shared.isEnabled = true
@@ -138,8 +139,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Permissions.shared.requestAccess()
             Updater.shared.start()
         } else {
+            quitOtherCopies()
             Permissions.shared.promptIfNeeded()
             Updater.shared.start()
+        }
+    }
+
+    /// The copy started last wins: an older one left running (by an update, or
+    /// opened from another folder) would handle the same hotkeys.
+    private func quitOtherCopies() {
+        let me = ProcessInfo.processInfo.processIdentifier
+        let others = NSRunningApplication.runningApplications(withBundleIdentifier: Bundle.main.bundleIdentifier ?? "")
+            .filter { $0.processIdentifier != me }
+        for other in others {
+            log.info("quitting another running copy (pid \(other.processIdentifier))")
+            other.terminate()
+        }
+        guard !others.isEmpty else { return }
+        // Quitting waits while that copy shows an alert.
+        Task {
+            try? await Task.sleep(for: .seconds(3))
+            for other in others where !other.isTerminated { other.forceTerminate() }
         }
     }
 

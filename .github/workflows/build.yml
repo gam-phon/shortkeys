@@ -123,7 +123,7 @@ jobs:
 
           ## First launch
 
-          1. Allow **Accessibility** access when asked. It's needed to detect hotkeys and to move windows.
+          1. Allow **Accessibility** access when asked. It's needed to move and switch windows; app hotkeys work without it.
           2. In Settings → General, turn on **Launch at Login**.
           NOTES
           sed -i '' 's/^          //' "$RUNNER_TEMP/notes.md"

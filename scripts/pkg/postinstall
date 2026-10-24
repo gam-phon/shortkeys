@@ -4,6 +4,7 @@ user="$(stat -f%Su /dev/console)"
 if [ -n "$user" ] && [ "$user" != "root" ]; then
     # Owned by the user, so Shortkeys can update and uninstall itself without a password.
     chown -R "$user":staff /Applications/Shortkeys.app
-    launchctl asuser "$(id -u "$user")" sudo -u "$user" /usr/bin/open /Applications/Shortkeys.app || true
+    # -n: Launch Services may still list the copy that was just quit.
+    launchctl asuser "$(id -u "$user")" sudo -u "$user" /usr/bin/open -n /Applications/Shortkeys.app || true
 fi
 exit 0

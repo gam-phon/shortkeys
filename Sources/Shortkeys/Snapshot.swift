@@ -1,4 +1,5 @@
 import AppKit
+import Carbon.HIToolbox
 import KeyboardShortcuts
 
 /// Developer self-tests, run only when the app is launched with an argument:
@@ -8,8 +9,9 @@ import KeyboardShortcuts
 ///   `selftest.txt`, a check of the hotkey wiring. Presses no keys.
 /// - `open Shortkeys.app --args --e2e-test <folder>`: drives the real UI with
 ///   synthetic input, like a user: click the menu bar icon, choose Open
-///   Settings… (⌘,), click a recorder, press ⌥Y. Writes `e2e.txt` and restores
-///   the shortcuts it touched.
+///   Settings… (⌘,), click a recorder, press ⌥Y. Then presses two test
+///   hotkeys and checks each fires once. Writes `e2e.txt` and restores the
+///   shortcuts it touched.
 @MainActor
 enum Snapshot {
     /// Whether the app was launched to run a self-test (it quits when done).
@@ -100,7 +102,7 @@ enum Snapshot {
     }
 
     /// Records a hotkey for Calculator the way the recorder does, checks that
-    /// the event tap would match it, then removes it. Presses no keys.
+    /// it's registered with the system, then removes it. Presses no keys.
     private static func wiringSelfTest() async -> [String] {
         var lines: [String] = []
         func check(_ label: String, _ ok: Bool) { lines.append("\(ok ? "ok  " : "FAIL") \(label)") }
@@ -113,20 +115,30 @@ enum Snapshot {
         KeyboardShortcuts.setShortcut(shortcut, for: name)
         check("recorded hotkey is stored", KeyboardShortcuts.getShortcut(for: name) == shortcut)
         check("app is added to the hotkey registry", AppHotkeys.shared.bundleIDs.contains(bundleID))
-        check("event tap matches the new hotkey immediately", HotkeyCenter.shared.binding(for: shortcut) == name)
+        check("new hotkey is bound immediately", HotkeyCenter.shared.binding(for: shortcut) == name)
+        check("new hotkey is registered with the system", HotkeyCenter.shared.isRegistered(name))
         check("'With shortcuts only' includes the app", AppHotkeys.shared.hasShortcut(bundleID))
 
         KeyboardShortcuts.setShortcut(before, for: name)
         check("cleared hotkey no longer matches", HotkeyCenter.shared.binding(for: shortcut) == nil)
+        check("cleared hotkey is unregistered", !HotkeyCenter.shared.isRegistered(name))
         check("app is removed from the registry", !AppHotkeys.shared.bundleIDs.contains(bundleID))
 
         for command in WindowCommand.allCases {
             if let windowShortcut = KeyboardShortcuts.getShortcut(for: command.shortcutName) {
-                check("\(command.title) hotkey is bound", HotkeyCenter.shared.binding(for: windowShortcut) == command.shortcutName)
+                check(
+                    "\(command.title) hotkey is bound and registered",
+                    HotkeyCenter.shared.binding(for: windowShortcut) == command.shortcutName
+                        && HotkeyCenter.shared.isRegistered(command.shortcutName)
+                )
             }
         }
         for (id, appShortcut) in AppHotkeys.defaultShortcuts {
-            check("\(id) hotkey is bound", HotkeyCenter.shared.binding(for: appShortcut) == AppHotkeys.name(for: id))
+            check(
+                "\(id) hotkey is bound and registered",
+                HotkeyCenter.shared.binding(for: appShortcut) == AppHotkeys.name(for: id)
+                    && HotkeyCenter.shared.isRegistered(AppHotkeys.name(for: id))
+            )
         }
         // Reusing a hotkey: recording Firefox's ⌥B for Calculator is a conflict.
         let firefox = AppHotkeys.name(for: "org.mozilla.firefox")
@@ -141,7 +153,7 @@ enum Snapshot {
             HotkeyCenter.shared.onConflict = askUser
             check("Firefox keeps its hotkey", KeyboardShortcuts.getShortcut(for: firefox) == firefoxShortcut)
         }
-        check("Carbon backend is disabled", !KeyboardShortcuts.isEnabled)
+        check("KeyboardShortcuts' own registration is disabled", !KeyboardShortcuts.isEnabled)
         check("version 1.10.0 is newer than 1.9.2", Updater.isVersion("1.10.0", newerThan: "1.9.2"))
         check("version 1.1 is not newer than 1.1.0", !Updater.isVersion("1.1", newerThan: "1.1.0"))
         check(
@@ -183,7 +195,41 @@ enum Snapshot {
             lines.append("\(KeyboardShortcuts.getShortcut(for: name) == saved ? "ok  " : "FAIL") \(page.title): original hotkey restored")
             lines.append("\(HotkeyCenter.shared.isRecordingShortcut ? "FAIL" : "ok  ") \(page.title): hotkeys active again after recording")
         }
+        lines += await pressHotkeys()
         write(lines, to: folder.appending(path: "e2e.txt"))
+    }
+
+    private static var fired: [String] = []
+
+    /// Registers test hotkeys (⌥-only and ⌃⌥), presses them with real key
+    /// events and checks each fires exactly once. Run it with secure input on
+    /// too: then macOS blocks the ⌥-only one, but the ⌃⌥ one must still fire.
+    private static func pressHotkeys() async -> [String] {
+        let secureInput = IsSecureEventInputEnabled()
+        var lines = ["     secure input is \(secureInput ? "on" : "off")"]
+        let tests: [(String, KeyboardShortcuts.Shortcut)] = [
+            ("⌥Q", .init(.q, modifiers: .option)),
+            ("⌃⌥Q", .init(.q, modifiers: [.control, .option])),
+        ]
+        // Frontmost, so a key that isn't caught doesn't type into another app.
+        SettingsWindow.open()
+        try? await Task.sleep(for: .seconds(1))
+        defer { NSApp.windows.first { $0.isVisible && $0.canBecomeMain }?.performClose(nil) }
+        for (label, shortcut) in tests {
+            let name = KeyboardShortcuts.Name("selftest:\(label)")
+            KeyboardShortcuts.setShortcut(shortcut, for: name)
+            HotkeyCenter.shared.register(name) { Snapshot.fired.append(label) }
+            fired = []
+            postKey(CGKeyCode(shortcut.carbonKeyCode), flags: CGEventFlags(rawValue: UInt64(shortcut.modifiers.rawValue)))
+            try? await Task.sleep(for: .seconds(0.5))
+            HotkeyCenter.shared.unregister(name)
+            KeyboardShortcuts.setShortcut(nil, for: name)
+            let blocked = secureInput && HotkeyCenter.isBlockedBySecureInput(shortcut)
+            let ok = fired == (blocked ? [] : [label])
+            let note = blocked ? " (macOS blocks it while secure input is on)" : ""
+            lines.append("\(ok ? "ok  " : "FAIL") press \(label): fired \(fired.count) time(s)\(note)")
+        }
+        return lines
     }
 
     private static func recordThroughUI(

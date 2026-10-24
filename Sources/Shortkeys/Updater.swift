@@ -299,6 +299,11 @@ final class Updater {
     /// Starts a helper that waits for Shortkeys to quit, swaps in the new app and
     /// reopens it. The old app is only removed once the new one is in place; if
     /// the swap fails, the old app is put back. Either way Shortkeys reopens.
+    ///
+    /// Quitting waits while an alert is open, so after 15 s the helper ends the
+    /// old process. It opens with `-n`: right after a quit, Launch Services can
+    /// still list the old process, and a plain `open` would only "reopen" that
+    /// one, starting nothing. If no new copy is running, it tries once more.
     static func replaceRunningApp(with newApp: URL) throws {
         let target = plainPath(Bundle.main.bundleURL)
         let parent = (target as NSString).deletingLastPathComponent
@@ -321,7 +326,12 @@ final class Updater {
         // so an update can be undone by putting it back.
         let script = """
             pid="$1"; target="${2%/}"; new="${3%/}"; trashed="$4"
-            while kill -0 "$pid" 2>/dev/null; do sleep 0.2; done
+            ticks=0
+            while kill -0 "$pid" 2>/dev/null; do
+                sleep 0.2; ticks=$((ticks + 1))
+                [ "$ticks" = 75 ] && kill -TERM "$pid" 2>/dev/null
+                [ "$ticks" = 100 ] && kill -KILL "$pid" 2>/dev/null
+            done
             if /usr/bin/ditto "$new" "$target.updating"; then
                 if mv "$target" "$target.old"; then
                     if mv "$target.updating" "$target"; then
@@ -333,7 +343,14 @@ final class Updater {
                 fi
                 rm -rf "$target.updating"
             fi
-            /usr/bin/open "$target"
+            running() { /usr/bin/pgrep -f "$target/Contents/MacOS/Shortkeys" >/dev/null; }
+            /usr/bin/open -n "$target"
+            ticks=0
+            while ! running && [ "$ticks" -lt 50 ]; do sleep 0.2; ticks=$((ticks + 1)); done
+            if ! running; then
+                /usr/bin/logger -t Shortkeys "update: Shortkeys didn't start; opening it again"
+                /usr/bin/open -n "$target"
+            fi
             rm -rf "$(dirname "$new")"
             """
         let stamp = Date.now.formatted(.iso8601.year().month().day().time(includingFractionalSeconds: false))

@@ -171,13 +171,12 @@ To set up the certificate again (for example on a new build Mac):
 
 ## Troubleshooting
 
-- **No hotkeys work, and the menu bar icon is a ⚠︎ triangle.** There are two
-  possible causes:
-  - Accessibility access is off.
-  - Another app has *Secure Keyboard Entry* on. That hides keystrokes from
-    every hotkey app, so Settings shows which app is holding it. If it's
-    `loginwindow`, macOS left it on after unlocking: lock and unlock, or log
-    out and back in.
+- **The menu bar icon is a ⚠︎ triangle.** Settings shows the cause:
+  - Accessibility access is off. Window hotkeys need it; app hotkeys don't.
+  - Another app has *Secure Keyboard Entry* on. While it's on, macOS blocks
+    hotkeys that use only ⌥ or ⌥⇧ (for every app); hotkeys with ⌃ or ⌘ keep
+    working. If the app holding it is `loginwindow`, macOS left it on after
+    unlocking: lock and unlock the screen.
 - **The menu bar icon is hidden.** Open Shortkeys again from Spotlight or the
   Applications folder, and Settings appears.
 - **Signing fails with `errSecInternalComponent`.** Run this once:
@@ -207,8 +206,10 @@ seconds.
   vendored in `Vendor/` with a few patches, which are documented in
   `Vendor/KeyboardShortcuts/PATCHES.md`. Some let it build without Xcode, and
   others fix the recorder for apps built for macOS 26+.
-- **Hotkey detection.** Key presses are detected with a CGEvent tap
-  (`HotkeyCenter.swift`). Windows are moved through the Accessibility API
+- **Hotkey detection.** Hotkeys are registered with the system
+  (`RegisterEventHotKey`, in `HotkeyCenter.swift`), so they work without
+  Accessibility access and while secure input is on (except ⌥-only ones,
+  which macOS blocks then). Windows are moved through the Accessibility API
   (`WindowManager.swift`), with the layout maths in `WindowGeometry.swift`.
 - **App state.** In the macOS 27 SDK, SwiftUI's `@State` is a compiler macro
   that only ships with Xcode, so views keep their state in `@Observable`

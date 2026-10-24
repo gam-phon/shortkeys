@@ -3,9 +3,10 @@ import ApplicationServices
 import Carbon.HIToolbox
 import Observation
 
-/// Tracks what can stop hotkeys from working: a missing Accessibility grant,
-/// or another process holding Secure Keyboard Entry (which hides keystrokes
-/// from every event tap). Refreshed on system events, never by polling.
+/// Tracks what can stop Shortkeys from working: a missing Accessibility grant
+/// (needed to move windows and switch between them), or another process
+/// holding Secure Keyboard Entry (macOS then blocks ⌥-only hotkeys). Refreshed
+/// on system events, and every few seconds while Accessibility is off.
 @MainActor
 @Observable
 final class Permissions {
@@ -15,7 +16,11 @@ final class Permissions {
     /// Name of the process holding secure input, or nil when it's off.
     private(set) var secureInputHolder: String?
 
-    var hotkeysBlocked: Bool { !isTrusted || secureInputHolder != nil }
+    var hotkeysBlocked: Bool {
+        !isTrusted || (secureInputHolder != nil && !HotkeyCenter.shared.blockedBySecureInput.isEmpty)
+    }
+
+    private var isPolling = false
 
     private init() {
         NotificationCenter.default.observe(NSApplication.didBecomeActiveNotification) {
@@ -48,7 +53,21 @@ final class Permissions {
     func refresh() {
         isTrusted = AXIsProcessTrusted()
         secureInputHolder = SecureInput.holder()
-        if isTrusted { HotkeyCenter.shared.startIfPossible() }
+        if !isTrusted { pollUntilTrusted() }
+    }
+
+    /// The "accessibility changed" notification doesn't always arrive, and right
+    /// after an update the grant can lag for a moment, so check until it's on.
+    private func pollUntilTrusted() {
+        guard !isPolling else { return }
+        isPolling = true
+        Task {
+            while !AXIsProcessTrusted() {
+                try? await Task.sleep(for: .seconds(2))
+            }
+            isPolling = false
+            refresh()
+        }
     }
 
     func openSystemSettings() {
@@ -74,13 +93,13 @@ final class Permissions {
         let alert = NSAlert()
         alert.messageText = "Shortkeys needs Accessibility access"
         alert.informativeText = """
-            Shortkeys listens for your hotkeys, moves and resizes windows, and switches \
-            between an app's windows. macOS only allows this for apps you turn on in \
+            Shortkeys moves and resizes windows, and switches between an app's \
+            windows. macOS only allows this for apps you turn on in \
             System Settings → Privacy & Security → Accessibility \
             (called "Device Control and Data Access" on newer macOS).
 
-            Next, macOS asks you to allow it. Turn on Shortkeys there and hotkeys \
-            start working right away.
+            Next, macOS asks you to allow it. Turn on Shortkeys there and window \
+            hotkeys start working right away. App hotkeys work without it.
             """
         alert.addButton(withTitle: "Continue")
         alert.addButton(withTitle: "Later")

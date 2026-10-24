@@ -58,11 +58,20 @@ open build/Shortkeys.app --args --e2e-test /tmp/sk-e2e     # real clicks/keys: r
 ## Architecture
 
 - **Hotkeys.**
-  - `HotkeyCenter` matches key-downs in a CGEvent tap, and asks before reusing
-    a hotkey that's already taken.
+  - `HotkeyCenter` registers every hotkey with `RegisterEventHotKey` on
+    `GetApplicationEventTarget()`, and asks before reusing a hotkey that's
+    already taken. While a recorder is active, it unregisters them all.
+  - It used to use a CGEvent tap, but a tap sees nothing while any process
+    holds Secure Keyboard Entry (loginwindow sometimes leaves it on after
+    unlocking), and it needs Accessibility. Registered hotkeys need neither.
+    Measured on macOS 27: with secure input on, ⌃⌥ hotkeys still fire, while
+    ⌥-only and ⌥⇧ ones don't (Apple's rule, for every app). The banner says
+    so (`HotkeyCenter.isBlockedBySecureInput`).
   - KeyboardShortcuts only stores shortcuts and provides the recorder. Its
-    Carbon backend is disabled (`isEnabled = false`), because Carbon hotkeys
-    didn't deliver here.
+    own Carbon backend stays disabled (`isEnabled = false`): it registered on
+    `GetEventDispatcherTarget()` and didn't deliver here.
+  - To test with secure input on, run a helper that calls
+    `EnableSecureEventInput()` and stays running, then `--e2e-test`.
 - **App launching.** `AppHotkeys` keeps a registry of bundle IDs.
   `AppLauncher` does launch, activate, and window cycling.
 - **Windows.**
@@ -117,6 +126,12 @@ open build/Shortkeys.app --args --e2e-test /tmp/sk-e2e     # real clicks/keys: r
   its SHA-256 and that the update satisfies the running app's designated
   requirement, then swaps the app via a helper script and relaunches.
   `--update-test` installs the latest release regardless of version.
+- **Relaunching.** Always `open -n`, everywhere (helper, postinstall,
+  scripts). Right after a quit, Launch Services can still list the old
+  process, and a plain `open` only "reopens" it, so nothing starts. The
+  helper force-quits the old copy after 15 s, since quitting waits while an
+  alert is open, and opens again if no new copy is running. At normal launch,
+  the newest copy quits any other running copy (`quitOtherCopies`).
 - **Ownership.** The .pkg installs as root, so postinstall `chown`s the app
   to the user. Update and uninstall fall back to `AdminPrompt` (the standard
   password dialog) for a root-owned copy.

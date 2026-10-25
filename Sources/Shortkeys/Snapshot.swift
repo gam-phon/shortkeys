@@ -220,7 +220,7 @@ enum Snapshot {
             KeyboardShortcuts.setShortcut(shortcut, for: name)
             HotkeyCenter.shared.register(name) { Snapshot.fired.append(label) }
             fired = []
-            postKey(CGKeyCode(shortcut.carbonKeyCode), flags: CGEventFlags(rawValue: UInt64(shortcut.modifiers.rawValue)))
+            pressLikeKeyboard(shortcut)
             try? await Task.sleep(for: .seconds(0.5))
             HotkeyCenter.shared.unregister(name)
             KeyboardShortcuts.setShortcut(nil, for: name)
@@ -292,6 +292,33 @@ enum Snapshot {
         for type in [CGEventType.leftMouseDown, .leftMouseUp] {
             CGEvent(mouseEventSource: nil, mouseType: type, mouseCursorPosition: location, mouseButton: .left)?
                 .post(tap: .cghidEventTap)
+        }
+    }
+
+    /// Presses a shortcut the way a keyboard does: each modifier key goes down
+    /// first and comes up last, all from the hardware event source.
+    private static func pressLikeKeyboard(_ shortcut: KeyboardShortcuts.Shortcut) {
+        let source = CGEventSource(stateID: .hidSystemState)
+        let modifierKeys: [(NSEvent.ModifierFlags, CGKeyCode, CGEventFlags)] = [
+            (.control, 59, .maskControl), (.option, 58, .maskAlternate),
+            (.shift, 56, .maskShift), (.command, 55, .maskCommand),
+        ].filter { shortcut.modifiers.contains($0.0) }
+        var flags: CGEventFlags = []
+        func post(_ code: CGKeyCode, down: Bool) {
+            let event = CGEvent(keyboardEventSource: source, virtualKey: code, keyDown: down)
+            event?.flags = flags
+            event?.post(tap: .cghidEventTap)
+            usleep(20_000)
+        }
+        for (_, code, flag) in modifierKeys {
+            flags.insert(flag)
+            post(code, down: true)
+        }
+        post(CGKeyCode(shortcut.carbonKeyCode), down: true)
+        post(CGKeyCode(shortcut.carbonKeyCode), down: false)
+        for (_, code, flag) in modifierKeys.reversed() {
+            flags.remove(flag)
+            post(code, down: false)
         }
     }
 

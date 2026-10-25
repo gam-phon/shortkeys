@@ -62,8 +62,9 @@ open build/Shortkeys.app --args --e2e-test /tmp/sk-e2e     # real clicks/keys: r
     `GetApplicationEventTarget()`, and asks before reusing a hotkey that's
     already taken. While a recorder is active, it unregisters them all.
   - It used to use a CGEvent tap, but a tap sees nothing while any process
-    holds Secure Keyboard Entry (loginwindow sometimes leaves it on after
-    unlocking), and it needs Accessibility. Registered hotkeys need neither.
+    holds Secure Keyboard Entry (loginwindow leaves it on after unlocking,
+    often for days; only logging out or restarting reliably clears it), and
+    it needs Accessibility. Registered hotkeys need neither.
     Measured on macOS 27: with secure input on, ⌃⌥ hotkeys still fire, while
     ⌥-only and ⌥⇧ ones don't (Apple's rule, for every app). The banner says
     so (`HotkeyCenter.isBlockedBySecureInput`).

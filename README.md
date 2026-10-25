@@ -175,8 +175,8 @@ To set up the certificate again (for example on a new build Mac):
   - Accessibility access is off. Window hotkeys need it; app hotkeys don't.
   - Another app has *Secure Keyboard Entry* on. While it's on, macOS blocks
     hotkeys that use only ⌥ or ⌥⇧ (for every app); hotkeys with ⌃ or ⌘ keep
-    working. If the app holding it is `loginwindow`, macOS left it on after
-    unlocking: lock and unlock the screen.
+    working. If the app holding it is `loginwindow`, the lock screen left it
+    on; unlocking often doesn't clear it, but logging out or restarting does.
 - **The menu bar icon is hidden.** Open Shortkeys again from Spotlight or the
   Applications folder, and Settings appears.
 - **Signing fails with `errSecInternalComponent`.** Run this once:

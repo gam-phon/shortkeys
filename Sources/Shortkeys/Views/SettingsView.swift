@@ -95,7 +95,7 @@ private struct StatusBanner: View {
             if let holder = status.secureInputHolder, !paused.isEmpty {
                 let list = paused.map { "\($0)" }.formatted(.list(type: .and))
                 let cause = holder == "loginwindow"
-                    ? "macOS left secure input on after unlocking. Until you lock and unlock the screen,"
+                    ? "macOS's lock screen left secure input on, and unlocking often doesn't clear it. Until you log out and back in, or restart,"
                     : "\(holder) has secure input on (usually a password field or a terminal setting). Until it's off,"
                 banner(
                     title: paused.count == 1 ? "\(list) is paused by Secure Keyboard Entry" : "\(list) are paused by Secure Keyboard Entry",

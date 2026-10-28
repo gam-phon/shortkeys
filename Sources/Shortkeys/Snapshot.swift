@@ -133,14 +133,30 @@ enum Snapshot {
                 )
             }
         }
-        for (id, appShortcut) in AppHotkeys.defaultShortcuts {
-            check(
-                "\(id) hotkey is bound and registered",
-                HotkeyCenter.shared.binding(for: appShortcut) == AppHotkeys.name(for: id)
-                    && HotkeyCenter.shared.isRegistered(AppHotkeys.name(for: id))
-            )
+        for id in AppHotkeys.defaultShortcuts.keys {
+            if let appShortcut = KeyboardShortcuts.getShortcut(for: AppHotkeys.name(for: id)) {
+                check(
+                    "\(id) hotkey is bound and registered",
+                    HotkeyCenter.shared.binding(for: appShortcut) == AppHotkeys.name(for: id)
+                        && HotkeyCenter.shared.isRegistered(AppHotkeys.name(for: id))
+                )
+            }
         }
-        // Reusing a hotkey: recording Firefox's ⌥B for Calculator is a conflict.
+        // Upgrading from before 1.4.0: Firefox still on ⌥B moves to ⌃⌥B, once.
+        let firefoxName = AppHotkeys.name(for: "org.mozilla.firefox")
+        let savedFirefox = KeyboardShortcuts.getShortcut(for: firefoxName)
+        let movedKey = AppHotkeys.shared.movedDefaultsKey
+        let wasMoved = UserDefaults.standard.bool(forKey: movedKey)
+        KeyboardShortcuts.setShortcut(AppHotkeys.oldDefaultShortcuts["org.mozilla.firefox"], for: firefoxName)
+        UserDefaults.standard.removeObject(forKey: movedKey)
+        AppHotkeys.shared.moveOldDefaults()
+        check("old ⌥B default moves to ⌃⌥B", KeyboardShortcuts.getShortcut(for: firefoxName) == AppHotkeys.defaultShortcuts["org.mozilla.firefox"])
+        KeyboardShortcuts.setShortcut(AppHotkeys.oldDefaultShortcuts["org.mozilla.firefox"], for: firefoxName)
+        AppHotkeys.shared.moveOldDefaults()
+        check("old defaults move only once", KeyboardShortcuts.getShortcut(for: firefoxName) == AppHotkeys.oldDefaultShortcuts["org.mozilla.firefox"])
+        KeyboardShortcuts.setShortcut(savedFirefox, for: firefoxName)
+        UserDefaults.standard.set(wasMoved, forKey: movedKey)
+        // Reusing a hotkey: recording Firefox's ⌃⌥B for Calculator is a conflict.
         let firefox = AppHotkeys.name(for: "org.mozilla.firefox")
         if let firefoxShortcut = KeyboardShortcuts.getShortcut(for: firefox) {
             var conflicts: [HotkeyCenter.Conflict] = []

@@ -14,6 +14,14 @@ final class AppHotkeys {
     static let shared = AppHotkeys()
 
     static let defaultShortcuts: [String: KeyboardShortcuts.Shortcut] = [
+        "org.mozilla.firefox": .init(.b, modifiers: [.control, .option]),
+        "com.mitchellh.ghostty": .init(.t, modifiers: [.control, .option]),
+        "com.anthropic.claudefordesktop": .init(.g, modifiers: [.control, .option]),
+        "com.apple.Notes": .init(.n, modifiers: [.control, .option]),
+    ]
+
+    /// Defaults before 1.4.0. A hotkey still on one of these moves to the new default, once.
+    static let oldDefaultShortcuts: [String: KeyboardShortcuts.Shortcut] = [
         "org.mozilla.firefox": .init(.b, modifiers: .option),
         "com.mitchellh.ghostty": .init(.t, modifiers: .option),
         "com.anthropic.claudefordesktop": .init(.g, modifiers: .option),
@@ -21,6 +29,7 @@ final class AppHotkeys {
     ]
 
     private let registryKey = "appShortcutIDs"
+    let movedDefaultsKey = "movedToControlOptionDefaults"
     private var attached = Set<String>()
 
     static func name(for bundleID: String) -> KeyboardShortcuts.Name {
@@ -39,12 +48,33 @@ final class AppHotkeys {
     }
 
     func start() {
+        moveOldDefaults()
         for id in bundleIDs { attach(id) }
 
         // Any recorder change; app shortcuts are the ones named "app:<bundleID>".
         NotificationCenter.default.observe(.shortcutDidChange, value: \.shortcutName) { name in
             guard let name, name.rawValue.hasPrefix("app:") else { return }
             AppHotkeys.shared.shortcutChanged(bundleID: String(name.rawValue.dropFirst("app:".count)))
+        }
+    }
+
+    /// Moves hotkeys the user never changed from the old ⌥ defaults to the new
+    /// ⌃⌥ ones. Runs once; skips a new hotkey that something else already uses.
+    func moveOldDefaults() {
+        guard !UserDefaults.standard.bool(forKey: movedDefaultsKey) else { return }
+        UserDefaults.standard.set(true, forKey: movedDefaultsKey)
+        var taken = Set(bundleIDs.compactMap { KeyboardShortcuts.getShortcut(for: Self.name(for: $0)) })
+        taken.formUnion(WindowCommand.allCases.compactMap { KeyboardShortcuts.getShortcut(for: $0.shortcutName) })
+        for (id, old) in Self.oldDefaultShortcuts {
+            let name = Self.name(for: id)
+            guard
+                KeyboardShortcuts.getShortcut(for: name) == old,
+                let new = Self.defaultShortcuts[id],
+                !taken.contains(new)
+            else { continue }
+            KeyboardShortcuts.setShortcut(new, for: name)
+            taken.insert(new)
+            log.info("moved \(id, privacy: .public) from \(old, privacy: .public) to \(new, privacy: .public)")
         }
     }
 

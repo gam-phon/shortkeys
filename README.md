@@ -36,10 +36,10 @@ Default hotkeys:
 
 | Hotkey | Action  | Hotkey | Action      |
 |--------|---------|--------|-------------|
-| ⌥B     | Firefox | ⌃⌥H    | Left Half   |
-| ⌥T     | Ghostty | ⌃⌥L    | Right Half  |
-| ⌥G     | Claude  | ⌃⌥K    | Top Half    |
-| ⌥N     | Notes   | ⌃⌥J    | Bottom Half |
+| ⌃⌥B    | Firefox | ⌃⌥H    | Left Half   |
+| ⌃⌥T    | Ghostty | ⌃⌥L    | Right Half  |
+| ⌃⌥G    | Claude  | ⌃⌥K    | Top Half    |
+| ⌃⌥N    | Notes   | ⌃⌥J    | Bottom Half |
 |        |         | ⌃⌥M    | Maximize    |
 |        |         | ⌃⌥O    | Top Center Two Thirds |
 
